@@ -1,13 +1,23 @@
 'use client'
 
-import { useState, useTransition } from 'react'
-import { useFormState } from 'react-dom'
+import { useState, useTransition, useActionState, useEffect } from 'react'
 import { signUpAction, type SignUpFormState } from '@/app/actions/auth'
 
 export default function SignUpForm() {
   const [activeTab, setActiveTab] = useState<'login' | 'signup'>('signup')
   const [isPending, startTransition] = useTransition()
-  const [state, formAction] = useFormState(signUpAction, {})
+  const [state, formAction] = useActionState(signUpAction, {})
+
+  // 登録成功時にログインフォームに切り替える
+  useEffect(() => {
+    if (state.message && !state.errors) {
+      const timer = setTimeout(() => {
+        setActiveTab('login')
+      }, 3000) // 3秒後にログインフォームに切り替え
+      
+      return () => clearTimeout(timer)
+    }
+  }, [state.message, state.errors])
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
@@ -71,6 +81,20 @@ export default function SignUpForm() {
                     }`}>
                       {state.message}
                     </p>
+                    {!state.errors && (
+                      <div className="mt-3">
+                        <p className="text-xs text-green-600 mb-2">
+                          3秒後にログインフォームに切り替わります
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setActiveTab('login')}
+                          className="text-sm text-green-600 hover:text-green-500 font-medium underline"
+                        >
+                          今すぐログインフォームに切り替える
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
 

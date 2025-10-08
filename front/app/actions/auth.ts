@@ -111,7 +111,9 @@ export async function signUpAction(
     if (data.user) {
       // 登録成功
       revalidatePath('/')
-      redirect('/?message=登録が完了しました')
+      return {
+        message: '登録が完了しました！ログインしてサービスをご利用ください。'
+      }
     }
 
     return {
