@@ -126,7 +126,7 @@ export default function LoginForm({ onSuccess, onError }: LoginFormProps) {
       )}
 
       <div>
-        <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+        <label htmlFor="email" className="block text-sm font-medium text-gray-900">
           メールアドレス
         </label>
         <input
@@ -135,8 +135,8 @@ export default function LoginForm({ onSuccess, onError }: LoginFormProps) {
           name="email"
           value={formData.email}
           onChange={handleInputChange}
-          className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-black ${
-            errors.email ? 'border-red-300' : 'border-gray-300'
+          className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-500 bg-white ${
+            errors.email ? 'border-red-300 bg-red-50' : 'border-gray-300'
           }`}
           placeholder="example@email.com"
           disabled={isLoading}
@@ -147,7 +147,7 @@ export default function LoginForm({ onSuccess, onError }: LoginFormProps) {
       </div>
 
       <div>
-        <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+        <label htmlFor="password" className="block text-sm font-medium text-gray-900">
           パスワード
         </label>
         <input
@@ -156,8 +156,8 @@ export default function LoginForm({ onSuccess, onError }: LoginFormProps) {
           name="password"
           value={formData.password}
           onChange={handleInputChange}
-          className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-black ${
-            errors.password ? 'border-red-300' : 'border-gray-300'
+          className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-500 bg-white ${
+            errors.password ? 'border-red-300 bg-red-50' : 'border-gray-300'
           }`}
           placeholder="パスワードを入力"
           disabled={isLoading}

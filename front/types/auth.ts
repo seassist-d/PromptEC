@@ -5,7 +5,16 @@ export interface User {
   email: string;
   display_name?: string;
   avatar_url?: string;
-  role: 'user' | 'admin';
+  bio?: string;
+  contact?: {
+    email?: string;
+    url?: string;
+    twitter?: string;
+    github?: string;
+    linkedin?: string;
+  };
+  role: 'user' | 'seller' | 'admin';
+  is_banned?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -73,4 +82,22 @@ export interface ValidationError {
 export interface FormValidationResult {
   isValid: boolean;
   errors: ValidationError[];
+}
+
+// プロフィール編集用の型定義
+export interface ProfileFormData {
+  display_name: string;
+  bio: string;
+  contact: {
+    email?: string;
+    url?: string;
+    twitter?: string;
+    github?: string;
+    linkedin?: string;
+  };
+  avatar?: File;
+}
+
+export interface ProfileUpdateResult extends ServerActionResult {
+  user?: User;
 }
