@@ -23,14 +23,19 @@ export const supabaseServer = createClient(
   }
 );
 
-// 新規登録用の型定義
+// 新規登録用の型定義（メールアドレスのみ）
 export interface RegisterData {
   email: string;
-  password: string;
-  displayName?: string;
 }
 
 export interface RegisterResult {
+  success: boolean;
+  message: string;
+  user?: any;
+  error?: string;
+}
+
+export interface LoginResult {
   success: boolean;
   message: string;
   user?: any;

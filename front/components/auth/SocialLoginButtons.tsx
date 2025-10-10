@@ -1,11 +1,18 @@
 'use client';
 
+import { useState, useEffect } from 'react';
+
 interface SocialLoginButtonsProps {
   onSuccess?: (message: string) => void;
   onError?: (message: string) => void;
 }
 
 export default function SocialLoginButtons({ onSuccess, onError }: SocialLoginButtonsProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const handleSocialLogin = async (provider: string) => {
     try {
       // TODO: 実際の外部認証処理を実装
@@ -19,6 +26,16 @@ export default function SocialLoginButtons({ onSuccess, onError }: SocialLoginBu
       onError?.(`${provider} でのログインに失敗しました`);
     }
   };
+
+  if (!mounted) {
+    return (
+      <div className="space-y-3 animate-pulse">
+        <div className="h-10 bg-gray-200 rounded"></div>
+        <div className="h-10 bg-gray-200 rounded"></div>
+        <div className="h-10 bg-gray-200 rounded"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-3">

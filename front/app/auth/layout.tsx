@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "認証 - PromptEC",
-  description: "PromptECにログインまたは新規登録",
+  description: "PromptECアカウントのログイン・新規登録",
 };
 
 export default function AuthLayout({

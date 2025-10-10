@@ -1,6 +1,10 @@
+'use client';
+
 import Link from 'next/link';
+import { useAuth } from '@/lib/useAuth';
 
 export default function Header() {
+  const { user, loading, signOut } = useAuth();
   return (
     <header className="bg-white shadow-sm border-b">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -36,9 +40,36 @@ export default function Header() {
             <Link href="/prompts" className="text-gray-500 hover:text-gray-900 px-3 py-2 text-sm font-medium">
               プロンプト検索
             </Link>
-            <Link href="/auth/login" className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700">
-              ログイン/登録
-            </Link>
+            
+            {loading ? (
+              // ローディング中
+              <div className="animate-pulse">
+                <div className="h-4 w-20 bg-gray-200 rounded"></div>
+              </div>
+            ) : user ? (
+              // ログイン済み: ユーザー名とログアウトボタン
+              <div className="flex items-center space-x-4">
+                <span className="text-gray-700 text-sm font-medium">
+                  こんにちは、{user.email?.split('@')[0] || 'ユーザー'}さん
+                </span>
+                <button
+                  onClick={signOut}
+                  className="text-gray-500 hover:text-gray-900 px-3 py-2 text-sm font-medium"
+                >
+                  ログアウト
+                </button>
+              </div>
+            ) : (
+              // 未ログイン: ログイン・新規登録ボタン
+              <>
+                <Link href="/auth/login" className="text-gray-500 hover:text-gray-900 px-3 py-2 text-sm font-medium">
+                  ログイン
+                </Link>
+                <Link href="/auth/register" className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700">
+                  新規登録
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { registerUser } from '@/lib/auth-actions';
 import type { RegisterFormData, RegisterServerResult } from '@/types/auth';
 
@@ -10,11 +10,16 @@ interface RegisterFormProps {
 }
 
 export default function RegisterForm({ onSuccess, onError }: RegisterFormProps) {
+  const [mounted, setMounted] = useState(false);
   const [formData, setFormData] = useState<RegisterFormData>({
     email: '',
   });
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // バリデーション
   const validateForm = (): boolean => {
@@ -79,9 +84,20 @@ export default function RegisterForm({ onSuccess, onError }: RegisterFormProps) 
     }
   };
 
+  if (!mounted) {
+    return (
+      <div className="space-y-6 animate-pulse">
+        <div className="h-4 bg-gray-200 rounded"></div>
+        <div className="h-10 bg-gray-200 rounded"></div>
+        <div className="h-10 bg-gray-200 rounded"></div>
+        <div className="h-4 bg-gray-200 rounded"></div>
+      </div>
+    );
+  }
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {errors.general && (
+      {errors.general && mounted && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
           {errors.general}
         </div>
@@ -94,7 +110,7 @@ export default function RegisterForm({ onSuccess, onError }: RegisterFormProps) 
           name="email"
           value={formData.email}
           onChange={handleInputChange}
-          className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
+          className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-black ${
             errors.email ? 'border-red-300' : 'border-gray-300'
           }`}
           placeholder="メールアドレスを入力してください"
@@ -111,12 +127,12 @@ export default function RegisterForm({ onSuccess, onError }: RegisterFormProps) 
         disabled={isLoading}
         className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {isLoading ? '処理中...' : '続行'}
+        {isLoading ? '認証メール送信中...' : '認証メールを送信'}
       </button>
 
       <div className="mt-4">
         <p className="text-sm text-gray-600 text-center">
-          続行すると、
+          認証メール送信により、
           <a href="/terms" className="text-blue-600 hover:text-blue-500">
             利用規約
           </a>
@@ -124,7 +140,7 @@ export default function RegisterForm({ onSuccess, onError }: RegisterFormProps) 
           <a href="/privacy" className="text-blue-600 hover:text-blue-500">
             プライバシーポリシー
           </a>
-          を理解し、同意したことになります。
+          に同意したことになります。
         </p>
       </div>
     </form>

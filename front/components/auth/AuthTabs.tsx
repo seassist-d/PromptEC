@@ -1,13 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import LoginForm from './LoginForm';
 import RegisterForm from './RegisterForm';
 import SocialLoginButtons from './SocialLoginButtons';
 
 export default function AuthTabs() {
+  const [mounted, setMounted] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState<string>('');
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleSuccess = (message: string) => {
     setSuccessMessage(message);
@@ -18,6 +23,26 @@ export default function AuthTabs() {
     setErrorMessage(message);
     setSuccessMessage('');
   };
+
+  if (!mounted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full space-y-8">
+          <div className="animate-pulse">
+            <div className="h-8 bg-gray-200 rounded mb-4"></div>
+            <div className="h-4 bg-gray-200 rounded mb-8"></div>
+            <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+              <div className="space-y-4">
+                <div className="h-10 bg-gray-200 rounded"></div>
+                <div className="h-10 bg-gray-200 rounded"></div>
+                <div className="h-10 bg-gray-200 rounded"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -33,7 +58,7 @@ export default function AuthTabs() {
 
 
         {/* 成功メッセージ */}
-        {successMessage && (
+        {successMessage && mounted && (
           <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
             <div className="flex">
               <div className="flex-shrink-0">
@@ -50,7 +75,7 @@ export default function AuthTabs() {
         )}
 
         {/* エラーメッセージ */}
-        {errorMessage && (
+        {errorMessage && mounted && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
             <div className="flex">
               <div className="flex-shrink-0">

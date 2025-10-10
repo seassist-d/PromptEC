@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabaseClient';
 
 interface LoginFormProps {
   onSuccess?: (message: string) => void;
@@ -9,12 +11,18 @@ interface LoginFormProps {
 }
 
 export default function LoginForm({ onSuccess, onError }: LoginFormProps) {
+  const router = useRouter();
+  const [mounted, setMounted] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
   });
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // バリデーション
   const validateForm = (): boolean => {
@@ -46,10 +54,35 @@ export default function LoginForm({ onSuccess, onError }: LoginFormProps) {
     setErrors({});
 
     try {
-      // TODO: 実際のログイン処理を実装
-      await new Promise(resolve => setTimeout(resolve, 1000)); // 模擬的な遅延
-      
-      onSuccess?.('ログインに成功しました');
+      // Supabaseでログイン処理
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password,
+      });
+
+      if (error) {
+        console.error('Login error:', error);
+        
+        // エラーメッセージの日本語化
+        let errorMessage = 'ログインに失敗しました。';
+        if (error.message.includes('Invalid login credentials')) {
+          errorMessage = 'メールアドレスまたはパスワードが正しくありません。';
+        } else if (error.message.includes('Email not confirmed')) {
+          errorMessage = 'メールアドレスが確認されていません。メール内のリンクをクリックして確認してください。';
+        } else if (error.message.includes('Too many requests')) {
+          errorMessage = 'ログイン試行回数が上限に達しました。しばらく時間をおいて再度お試しください。';
+        }
+
+        onError?.(errorMessage);
+        setErrors({ general: errorMessage });
+      } else {
+        onSuccess?.('ログインに成功しました');
+        
+        // ログイン成功後、トップページにリダイレクト
+        setTimeout(() => {
+          router.push('/');
+        }, 1500); // 成功メッセージを表示してからリダイレクト
+      }
     } catch (error) {
       const errorMessage = 'ログインに失敗しました';
       onError?.(errorMessage);
@@ -72,9 +105,21 @@ export default function LoginForm({ onSuccess, onError }: LoginFormProps) {
     }
   };
 
+  if (!mounted) {
+    return (
+      <div className="space-y-6 animate-pulse">
+        <div className="h-4 bg-gray-200 rounded"></div>
+        <div className="h-10 bg-gray-200 rounded"></div>
+        <div className="h-4 bg-gray-200 rounded"></div>
+        <div className="h-10 bg-gray-200 rounded"></div>
+        <div className="h-10 bg-gray-200 rounded"></div>
+      </div>
+    );
+  }
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {errors.general && (
+      {errors.general && mounted && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
           {errors.general}
         </div>
@@ -90,7 +135,7 @@ export default function LoginForm({ onSuccess, onError }: LoginFormProps) {
           name="email"
           value={formData.email}
           onChange={handleInputChange}
-          className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
+          className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-black ${
             errors.email ? 'border-red-300' : 'border-gray-300'
           }`}
           placeholder="example@email.com"
@@ -111,7 +156,7 @@ export default function LoginForm({ onSuccess, onError }: LoginFormProps) {
           name="password"
           value={formData.password}
           onChange={handleInputChange}
-          className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
+          className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-black ${
             errors.password ? 'border-red-300' : 'border-gray-300'
           }`}
           placeholder="パスワードを入力"
