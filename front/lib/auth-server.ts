@@ -6,9 +6,10 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !supabaseServiceKey) {
-  console.warn(
-    '[auth-server] Supabase環境変数が未設定です。開発用のデフォルト値を使用します。'
+  console.error(
+    '[auth-server] Supabase環境変数が未設定です。.env.localファイルにSUPABASE_SERVICE_ROLE_KEYを設定してください。'
   );
+  throw new Error('Supabase環境変数が未設定です。管理者にお問い合わせください。');
 }
 
 // Server Action用のSupabaseクライアント（Service Role Key使用）

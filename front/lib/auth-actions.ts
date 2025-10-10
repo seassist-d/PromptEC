@@ -31,12 +31,18 @@ export async function registerUser(formData: FormData): Promise<RegisterResult> 
     }
 
     // Supabaseでメールアドレス認証（パスワードレス）
+    console.log('Sending OTP email to:', email);
+    console.log('Redirect URL:', `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/set-password`);
+    
     const { data, error } = await supabaseServer.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/login`,
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/set-password`,
       },
     });
+
+    console.log('OTP response data:', data);
+    console.log('OTP response error:', error);
 
     if (error) {
       console.error('Registration error:', error);
@@ -49,6 +55,10 @@ export async function registerUser(formData: FormData): Promise<RegisterResult> 
         errorMessage = '無効なメールアドレスです。';
       } else if (error.message.includes('rate limit')) {
         errorMessage = '送信回数が上限に達しました。しばらく時間をおいて再度お試しください。';
+      } else if (error.message.includes('Supabase環境変数が未設定')) {
+        errorMessage = 'システム設定エラーです。管理者にお問い合わせください。';
+      } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+        errorMessage = 'ネットワークエラーが発生しました。インターネット接続を確認してください。';
       }
 
       return {
