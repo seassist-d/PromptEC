@@ -1,17 +1,17 @@
 'use client';
 
 import { useState } from 'react';
-import { registerUser } from '@/lib/auth-actions';
-import type { RegisterFormData, RegisterServerResult } from '@/types/auth';
+import Link from 'next/link';
 
-interface RegisterFormProps {
+interface LoginFormProps {
   onSuccess?: (message: string) => void;
   onError?: (message: string) => void;
 }
 
-export default function RegisterForm({ onSuccess, onError }: RegisterFormProps) {
-  const [formData, setFormData] = useState<RegisterFormData>({
+export default function LoginForm({ onSuccess, onError }: LoginFormProps) {
+  const [formData, setFormData] = useState({
     email: '',
+    password: '',
   });
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -24,6 +24,10 @@ export default function RegisterForm({ onSuccess, onError }: RegisterFormProps) 
       newErrors.email = 'メールアドレスは必須です';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = '正しいメールアドレスを入力してください';
+    }
+
+    if (!formData.password) {
+      newErrors.password = 'パスワードは必須です';
     }
 
     setErrors(newErrors);
@@ -42,23 +46,12 @@ export default function RegisterForm({ onSuccess, onError }: RegisterFormProps) 
     setErrors({});
 
     try {
-      const formDataToSend = new FormData();
-      formDataToSend.append('email', formData.email);
-
-      const result: RegisterServerResult = await registerUser(formDataToSend);
-
-      if (result.success) {
-        onSuccess?.(result.message);
-        // フォームをリセット
-        setFormData({
-          email: '',
-        });
-      } else {
-        onError?.(result.message);
-        setErrors({ general: result.message });
-      }
+      // TODO: 実際のログイン処理を実装
+      await new Promise(resolve => setTimeout(resolve, 1000)); // 模擬的な遅延
+      
+      onSuccess?.('ログインに成功しました');
     } catch (error) {
-      const errorMessage = '予期しないエラーが発生しました';
+      const errorMessage = 'ログインに失敗しました';
       onError?.(errorMessage);
       setErrors({ general: errorMessage });
     } finally {
@@ -67,10 +60,10 @@ export default function RegisterForm({ onSuccess, onError }: RegisterFormProps) 
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]: value,
     }));
     
     // エラーをクリア
@@ -88,6 +81,9 @@ export default function RegisterForm({ onSuccess, onError }: RegisterFormProps) 
       )}
 
       <div>
+        <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+          メールアドレス
+        </label>
         <input
           type="email"
           id="email"
@@ -97,7 +93,7 @@ export default function RegisterForm({ onSuccess, onError }: RegisterFormProps) 
           className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
             errors.email ? 'border-red-300' : 'border-gray-300'
           }`}
-          placeholder="メールアドレスを入力してください"
+          placeholder="example@email.com"
           disabled={isLoading}
         />
         {errors.email && (
@@ -105,28 +101,54 @@ export default function RegisterForm({ onSuccess, onError }: RegisterFormProps) 
         )}
       </div>
 
+      <div>
+        <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+          パスワード
+        </label>
+        <input
+          type="password"
+          id="password"
+          name="password"
+          value={formData.password}
+          onChange={handleInputChange}
+          className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
+            errors.password ? 'border-red-300' : 'border-gray-300'
+          }`}
+          placeholder="パスワードを入力"
+          disabled={isLoading}
+        />
+        {errors.password && (
+          <p className="mt-1 text-sm text-red-600">{errors.password}</p>
+        )}
+      </div>
+
+      <div className="flex items-center justify-between">
+        <div className="flex items-center">
+          <input
+            id="remember-me"
+            name="remember-me"
+            type="checkbox"
+            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+          />
+          <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
+            ログイン状態を保持する
+          </label>
+        </div>
+
+        <div className="text-sm">
+          <Link href="/auth/forgot-password" className="font-medium text-blue-600 hover:text-blue-500">
+            パスワードを忘れた方
+          </Link>
+        </div>
+      </div>
 
       <button
         type="submit"
         disabled={isLoading}
         className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {isLoading ? '処理中...' : '続行'}
+        {isLoading ? 'ログイン中...' : 'ログイン'}
       </button>
-
-      <div className="mt-4">
-        <p className="text-sm text-gray-600 text-center">
-          続行すると、
-          <a href="/terms" className="text-blue-600 hover:text-blue-500">
-            利用規約
-          </a>
-          および
-          <a href="/privacy" className="text-blue-600 hover:text-blue-500">
-            プライバシーポリシー
-          </a>
-          を理解し、同意したことになります。
-        </p>
-      </div>
     </form>
   );
 }

@@ -24,10 +24,6 @@ export interface AuthUser {
 
 export interface RegisterFormData {
   email: string;
-  password: string;
-  confirmPassword: string;
-  displayName?: string;
-  agreeToTerms: boolean;
 }
 
 export interface LoginFormData {
