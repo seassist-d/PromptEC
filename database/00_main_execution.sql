@@ -9,16 +9,16 @@
 -- 既にfront/create_user_profiles_table.sqlでテーブルを作成済みの場合は、
 -- 以下のクリーンアップを先に実行してください：
 --
--- DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
--- DROP TRIGGER IF EXISTS update_user_profiles_updated_at ON public.user_profiles;
--- DROP FUNCTION IF EXISTS create_profile_for_new_user();
--- DROP FUNCTION IF EXISTS update_updated_at_column();
--- DROP POLICY IF EXISTS "Users can view own profile" ON public.user_profiles;
--- DROP POLICY IF EXISTS "Users can update own profile" ON public.user_profiles;
--- DROP POLICY IF EXISTS "Users can insert own profile" ON public.user_profiles;
--- DROP POLICY IF EXISTS "Admins can view all profiles" ON public.user_profiles;
--- DROP POLICY IF EXISTS "Admins can update all profiles" ON public.user_profiles;
--- DROP TABLE IF EXISTS public.user_profiles CASCADE;
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+DROP TRIGGER IF EXISTS update_user_profiles_updated_at ON public.user_profiles;
+DROP FUNCTION IF EXISTS create_profile_for_new_user();
+DROP FUNCTION IF EXISTS update_updated_at_column();
+DROP POLICY IF EXISTS "Users can view own profile" ON public.user_profiles;
+DROP POLICY IF EXISTS "Users can update own profile" ON public.user_profiles;
+DROP POLICY IF EXISTS "Users can insert own profile" ON public.user_profiles;
+DROP POLICY IF EXISTS "Admins can view all profiles" ON public.user_profiles;
+DROP POLICY IF EXISTS "Admins can update all profiles" ON public.user_profiles;
+DROP TABLE IF EXISTS public.user_profiles CASCADE;
 --
 -- 1. 01_enums.sql - Enum型の定義
 -- 2. 02_tables.sql - テーブルの作成
