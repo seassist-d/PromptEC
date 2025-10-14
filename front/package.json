@@ -4,6 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
+    "dev:3000": "next dev --turbopack --port 3000",
+    "dev:3001": "next dev --turbopack --port 3001",
+    "dev:3002": "next dev --turbopack --port 3002",
+    "dev:auto": "node scripts/dev-with-port.js",
+    "dev:port": "next dev --turbopack --port 0",
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint"

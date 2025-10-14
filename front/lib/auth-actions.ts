@@ -32,12 +32,13 @@ export async function registerUser(formData: FormData): Promise<RegisterResult> 
 
     // Supabaseでメールアドレス認証（パスワードレス）
     console.log('Sending OTP email to:', email);
-    console.log('Redirect URL:', `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/set-password`);
+    const redirectUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback`;
+    console.log('Redirect URL:', redirectUrl);
     
     const { data, error } = await supabaseServer.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/set-password`,
+        emailRedirectTo: redirectUrl,
       },
     });
 
