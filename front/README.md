@@ -14,6 +14,34 @@ pnpm dev
 bun dev
 ```
 
+### 開発サーバーの起動オプション
+
+このプロジェクトは動的ポート対応しており、以下のオプションで起動できます：
+
+```bash
+# デフォルト（Next.jsが自動でポートを選択）
+yarn dev
+
+# 特定のポートで起動
+yarn dev:3000  # ポート3000で起動
+yarn dev:3001  # ポート3001で起動
+yarn dev:3002  # ポート3002で起動
+
+# 自動で利用可能なポートを検索して起動
+yarn dev:auto
+
+# 動的ポート検出（推奨）
+yarn dev:dynamic
+
+# cross-envパッケージを追加
+yarn add -D cross-env
+```
+
+**動的ポート対応について：**
+- メール認証のリダイレクトURLは自動的に現在のポートを検出します
+- 3000、3001、3002など、どのポートで起動しても正常に動作します
+- 環境変数`NEXT_PUBLIC_SITE_URL`で明示的に設定することも可能です
+
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.

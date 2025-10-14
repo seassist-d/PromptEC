@@ -97,7 +97,7 @@ export default function SetPasswordPage() {
         throw new Error('認証情報が無効です。再度メール認証を行ってください。');
       }
 
-      // パスワードを更新
+      // パスワードを設定（OTP認証後の初回パスワード設定）
       const { error } = await supabase.auth.updateUser({
         password: formData.password
       });
@@ -172,7 +172,7 @@ export default function SetPasswordPage() {
             パスワード設定
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            アカウントのパスワードを設定してください
+            メール認証が完了しました。アカウントのパスワードを設定してください
           </p>
         </div>
 
