@@ -25,13 +25,25 @@ export default function ProfileEditPage() {
       }
 
       try {
+        console.log('Loading profile for edit page...');
         const result = await getProfileClient();
+        console.log('Profile load result:', result);
+        
         if (result.success && result.user) {
           setUser(result.user);
         } else {
+          console.error('Profile load failed:', result.error);
           setError(result.error || 'プロフィールの取得に失敗しました');
         }
-      } catch {
+      } catch (error) {
+        console.error('Unexpected error in profile edit page:', {
+          error: error instanceof Error ? {
+            message: error.message,
+            stack: error.stack,
+            name: error.name
+          } : error,
+          timestamp: new Date().toISOString()
+        });
         setError('予期しないエラーが発生しました');
       } finally {
         setLoading(false);

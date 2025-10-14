@@ -63,10 +63,29 @@ export async function updateProfileClient(formData: ProfileFormData): Promise<{ 
       .single();
 
     if (profileError) {
-      console.error('Profile update error:', profileError);
+      console.error('Profile update error:', {
+        message: profileError.message || 'No message',
+        code: profileError.code || 'No code',
+        details: profileError.details || 'No details',
+        hint: profileError.hint || 'No hint',
+        fullError: profileError,
+        errorType: typeof profileError,
+        errorKeys: Object.keys(profileError || {}),
+        errorStringified: JSON.stringify(profileError, null, 2)
+      });
+      
+      // テーブルが存在しない場合のエラーハンドリング
+      if (profileError.message?.includes("Could not find the table 'public.user_profiles'")) {
+        console.error('Database table user_profiles does not exist. Please create the table in Supabase.');
+        console.error('Run the SQL script in create_user_profiles_table.sql in Supabase SQL Editor');
+        return {
+          success: false,
+          error: 'データベーステーブルが存在しません。SupabaseのSQL Editorでcreate_user_profiles_table.sqlを実行してください。'
+        };
+      }
       
       // プロフィールが存在しない場合は新規作成
-      if (profileError.code === 'PGRST116') {
+      if (profileError.code === 'PGRST116' || profileError.message?.includes('No rows found')) {
         console.log('Profile not found, creating new profile...');
         
         const { data: newProfileData, error: createError } = await supabase
@@ -86,10 +105,19 @@ export async function updateProfileClient(formData: ProfileFormData): Promise<{ 
           .single();
 
         if (createError) {
-          console.error('Profile creation error:', createError);
+          console.error('Profile creation error:', {
+            message: createError.message || 'No message',
+            code: createError.code || 'No code',
+            details: createError.details || 'No details',
+            hint: createError.hint || 'No hint',
+            fullError: createError,
+            errorType: typeof createError,
+            errorKeys: Object.keys(createError || {}),
+            errorStringified: JSON.stringify(createError, null, 2)
+          });
           return {
             success: false,
-            error: 'プロフィールの作成に失敗しました'
+            error: `プロフィールの作成に失敗しました: ${createError.message || 'Unknown error'}`
           };
         }
 
@@ -138,7 +166,14 @@ export async function updateProfileClient(formData: ProfileFormData): Promise<{ 
     };
 
   } catch (error) {
-    console.error('Profile update error:', error);
+    console.error('Profile update error:', {
+      error: error instanceof Error ? {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      } : error,
+      timestamp: new Date().toISOString()
+    });
     return {
       success: false,
       error: '予期しないエラーが発生しました'
@@ -148,29 +183,66 @@ export async function updateProfileClient(formData: ProfileFormData): Promise<{ 
 
 export async function getProfileClient(): Promise<{ success: boolean; user?: User; error?: string }> {
   try {
+    console.log('Starting getProfileClient...');
+    console.log('Supabase client:', !!supabase);
+    
     const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
     
     console.log('Auth user:', authUser);
     console.log('Auth error:', authError);
     
     if (authError || !authUser) {
+      console.error('Authentication failed:', {
+        authError: authError ? {
+          message: authError.message || 'No message',
+          code: authError.code || 'No code',
+          fullError: authError,
+          errorType: typeof authError,
+          errorKeys: Object.keys(authError || {}),
+          errorStringified: JSON.stringify(authError, null, 2)
+        } : null,
+        hasUser: !!authUser,
+        authUserType: typeof authUser
+      });
       return {
         success: false,
         error: '認証が必要です'
       };
     }
 
+    console.log('Querying user_profiles table for user_id:', authUser.id);
     const { data: profileData, error: profileError } = await supabase
       .from('user_profiles')
       .select('*')
       .eq('user_id', authUser.id)
       .single();
+    
+    console.log('Profile query result:', { profileData, profileError });
 
     if (profileError) {
-      console.error('Profile fetch error:', profileError);
+      console.error('Profile fetch error:', {
+        message: profileError.message || 'No message',
+        code: profileError.code || 'No code',
+        details: profileError.details || 'No details',
+        hint: profileError.hint || 'No hint',
+        fullError: profileError,
+        errorType: typeof profileError,
+        errorKeys: Object.keys(profileError || {}),
+        errorStringified: JSON.stringify(profileError, null, 2)
+      });
+      
+      // テーブルが存在しない場合のエラーハンドリング
+      if (profileError.message?.includes("Could not find the table 'public.user_profiles'")) {
+        console.error('Database table user_profiles does not exist. Please create the table in Supabase.');
+        console.error('Run the SQL script in create_user_profiles_table.sql in Supabase SQL Editor');
+        return {
+          success: false,
+          error: 'データベーステーブルが存在しません。SupabaseのSQL Editorでcreate_user_profiles_table.sqlを実行してください。'
+        };
+      }
       
       // プロフィールが存在しない場合は新規作成
-      if (profileError.code === 'PGRST116') {
+      if (profileError.code === 'PGRST116' || profileError.message?.includes('No rows found')) {
         console.log('Profile not found, creating new profile...');
         
         const { data: newProfileData, error: createError } = await supabase
@@ -179,7 +251,7 @@ export async function getProfileClient(): Promise<{ success: boolean; user?: Use
             user_id: authUser.id,
             display_name: authUser.user_metadata?.display_name || authUser.email?.split('@')[0] || 'ユーザー',
             avatar_url: authUser.user_metadata?.avatar_url || null,
-            bio: null,
+            bio: undefined,
             contact: {},
             role: 'user',
             is_banned: false,
@@ -190,10 +262,19 @@ export async function getProfileClient(): Promise<{ success: boolean; user?: Use
           .single();
 
         if (createError) {
-          console.error('Profile creation error:', createError);
+          console.error('Profile creation error:', {
+            message: createError.message || 'No message',
+            code: createError.code || 'No code',
+            details: createError.details || 'No details',
+            hint: createError.hint || 'No hint',
+            fullError: createError,
+            errorType: typeof createError,
+            errorKeys: Object.keys(createError || {}),
+            errorStringified: JSON.stringify(createError, null, 2)
+          });
           return {
             success: false,
-            error: 'プロフィールの作成に失敗しました'
+            error: `プロフィールの作成に失敗しました: ${createError.message || 'Unknown error'}`
           };
         }
 
@@ -223,7 +304,7 @@ export async function getProfileClient(): Promise<{ success: boolean; user?: Use
         email: authUser.email || '',
         display_name: authUser.user_metadata?.display_name || authUser.email?.split('@')[0] || 'ユーザー',
         avatar_url: authUser.user_metadata?.avatar_url || null,
-        bio: null,
+        bio: undefined,
         contact: {},
         role: 'user',
         is_banned: false,
@@ -256,7 +337,14 @@ export async function getProfileClient(): Promise<{ success: boolean; user?: Use
     };
 
   } catch (error) {
-    console.error('Get profile error:', error);
+    console.error('Get profile error:', {
+      error: error instanceof Error ? {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      } : error,
+      timestamp: new Date().toISOString()
+    });
     return {
       success: false,
       error: '予期しないエラーが発生しました'

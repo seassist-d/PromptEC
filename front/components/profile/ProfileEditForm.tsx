@@ -108,14 +108,25 @@ export default function ProfileEditForm({ user, onSuccess, onCancel }: ProfileEd
         return;
       }
 
+      console.log('Submitting profile update...');
       const result = await updateProfileClient(submitData);
+      console.log('Profile update result:', result);
       
       if (result.success && result.user) {
         onSuccess?.(result.user);
       } else {
+        console.error('Profile update failed:', result.error);
         setError(result.error || 'プロフィールの更新に失敗しました');
       }
-    } catch {
+    } catch (error) {
+      console.error('Unexpected error in profile update:', {
+        error: error instanceof Error ? {
+          message: error.message,
+          stack: error.stack,
+          name: error.name
+        } : error,
+        timestamp: new Date().toISOString()
+      });
       setError('予期しないエラーが発生しました');
     } finally {
       setIsLoading(false);

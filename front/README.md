@@ -2,7 +2,33 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-First, run the development server:
+### 1. 環境変数の設定
+
+`.env.local` ファイルを作成し、Supabaseの設定を追加してください：
+
+```bash
+cp env.example .env.local
+```
+
+`.env.local` ファイルを編集して、以下の値を設定してください：
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+```
+
+### 2. データベーステーブルの作成
+
+SupabaseのSQL Editorで `create_user_profiles_table.sql` を実行して、必要なテーブルを作成してください：
+
+1. Supabaseダッシュボードにログイン
+2. SQL Editorを開く
+3. `create_user_profiles_table.sql` の内容をコピー＆ペースト
+4. 実行ボタンをクリック
+
+### 3. 開発サーバーの起動
 
 ```bash
 npm run dev
