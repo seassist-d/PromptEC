@@ -19,17 +19,43 @@ export default function SetPasswordPage() {
   useEffect(() => {
     setMounted(true);
     
-    // URLパラメータから認証情報を確認
-    const accessToken = searchParams.get('access_token');
-    const refreshToken = searchParams.get('refresh_token');
+    // Supabaseの認証状態を確認
+    const checkAuth = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Session error:', error);
+          setErrors({ general: '認証情報が無効です。再度メール認証を行ってください。' });
+          return;
+        }
+        
+        if (!session) {
+          // URLパラメータから認証情報を確認（フォールバック）
+          const accessToken = searchParams.get('access_token');
+          const refreshToken = searchParams.get('refresh_token');
+          
+          if (accessToken && refreshToken) {
+            const { error: sessionError } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            });
+            
+            if (sessionError) {
+              console.error('Session setting error:', sessionError);
+              setErrors({ general: '認証情報が無効です。再度メール認証を行ってください。' });
+            }
+          } else {
+            setErrors({ general: '認証情報が無効です。再度メール認証を行ってください。' });
+          }
+        }
+      } catch (error) {
+        console.error('Auth check error:', error);
+        setErrors({ general: '認証情報が無効です。再度メール認証を行ってください。' });
+      }
+    };
     
-    if (accessToken && refreshToken) {
-      // セッションを設定
-      supabase.auth.setSession({
-        access_token: accessToken,
-        refresh_token: refreshToken,
-      });
-    }
+    checkAuth();
   }, [searchParams]);
 
   // バリデーション
@@ -71,7 +97,7 @@ export default function SetPasswordPage() {
         throw new Error('認証情報が無効です。再度メール認証を行ってください。');
       }
 
-      // パスワードを更新
+      // パスワードを設定（OTP認証後の初回パスワード設定）
       const { error } = await supabase.auth.updateUser({
         password: formData.password
       });
@@ -146,7 +172,7 @@ export default function SetPasswordPage() {
             パスワード設定
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            アカウントのパスワードを設定してください
+            メール認証が完了しました。アカウントのパスワードを設定してください
           </p>
         </div>
 
