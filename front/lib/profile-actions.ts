@@ -59,20 +59,43 @@ export async function updateProfile(formData: ProfileFormData): Promise<ProfileU
       updateData.avatar_url = avatarUrl;
     }
 
-    const { data: profileData, error: profileError } = await supabase
-      .from('user_profiles')
-      .update(updateData)
-      .eq('user_id', authUser.id)
-      .select()
-      .single();
+    // データベース関数を使用してプロフィールを更新
+    const { data: functionResult, error: functionError } = await supabase
+      .rpc('update_user_profile', {
+        p_user_id: authUser.id,
+        p_display_name: formData.display_name,
+        p_bio: formData.bio,
+        p_contact: formData.contact,
+        p_avatar_url: avatarUrl || null
+      });
 
-    if (profileError) {
+    if (functionError) {
       return {
         success: false,
         message: 'プロフィールの更新に失敗しました',
-        error: profileError.message
+        error: functionError.message
       };
     }
+
+    // 関数の結果をチェック
+    if (!functionResult || functionResult.length === 0) {
+      return {
+        success: false,
+        message: 'プロフィールの更新に失敗しました',
+        error: 'No result from database function'
+      };
+    }
+
+    const result = functionResult[0];
+    if (!result.success) {
+      return {
+        success: false,
+        message: 'プロフィールの更新に失敗しました',
+        error: result.message || 'Unknown error'
+      };
+    }
+
+    const profileData = result.profile_data;
 
     // 更新されたユーザー情報を返す
     const updatedUser: User = {
@@ -125,6 +148,53 @@ export async function getProfile(): Promise<{ success: boolean; user?: User; err
       .single();
 
     if (profileError) {
+      // プロフィールが存在しない場合は新規作成
+      if (profileError.code === 'PGRST116' || profileError.message?.includes('No rows found')) {
+        // データベース関数を使用してプロフィールを作成
+        const { data: functionResult, error: functionError } = await supabase
+          .rpc('update_user_profile', {
+            p_user_id: authUser.id,
+            p_display_name: authUser.user_metadata?.display_name || authUser.email?.split('@')[0] || 'ユーザー',
+            p_bio: null,
+            p_contact: {},
+            p_avatar_url: authUser.user_metadata?.avatar_url || null
+          });
+
+        if (functionError) {
+          return {
+            success: false,
+            error: `プロフィールの作成に失敗しました: ${functionError.message}`
+          };
+        }
+
+        const result = functionResult[0];
+        if (!result.success) {
+          return {
+            success: false,
+            error: result.message || 'プロフィールの作成に失敗しました'
+          };
+        }
+
+        const profileData = result.profile_data;
+        const user: User = {
+          id: authUser.id,
+          email: authUser.email || '',
+          display_name: profileData.display_name,
+          avatar_url: profileData.avatar_url,
+          bio: profileData.bio,
+          contact: profileData.contact,
+          role: profileData.role || 'user',
+          is_banned: profileData.is_banned || false,
+          created_at: profileData.created_at,
+          updated_at: profileData.updated_at
+        };
+
+        return {
+          success: true,
+          user
+        };
+      }
+      
       return {
         success: false,
         error: 'プロフィールの取得に失敗しました'

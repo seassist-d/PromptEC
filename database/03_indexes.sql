@@ -1,6 +1,82 @@
 -- =============================================
--- インデックス作成
+-- インデックス作成（修正版 - 既存のインデックスを安全に削除してから再作成）
 -- =============================================
+
+-- 既存のインデックスを安全に削除
+DROP INDEX IF EXISTS public.idx_subscriptions_period;
+DROP INDEX IF EXISTS public.idx_subscriptions_status;
+DROP INDEX IF EXISTS public.idx_subscriptions_user_id;
+DROP INDEX IF EXISTS public.idx_subscription_plans_status;
+DROP INDEX IF EXISTS public.idx_audit_logs_created_at;
+DROP INDEX IF EXISTS public.idx_audit_logs_entity;
+DROP INDEX IF EXISTS public.idx_audit_logs_actor;
+DROP INDEX IF EXISTS public.idx_ranking_snapshots_dates;
+DROP INDEX IF EXISTS public.idx_ranking_snapshots_type_period;
+DROP INDEX IF EXISTS public.idx_auto_tags_search;
+DROP INDEX IF EXISTS public.idx_auto_tags_prompt_id;
+DROP INDEX IF EXISTS public.idx_recommendation_events_event_type;
+DROP INDEX IF EXISTS public.idx_recommendation_events_prompt_time;
+DROP INDEX IF EXISTS public.idx_recommendation_events_user_time;
+DROP INDEX IF EXISTS public.idx_preview_cache_preview_type;
+DROP INDEX IF EXISTS public.idx_preview_cache_prompt_version_id;
+DROP INDEX IF EXISTS public.idx_ai_jobs_created_at;
+DROP INDEX IF EXISTS public.idx_ai_jobs_type_status;
+DROP INDEX IF EXISTS public.idx_admin_actions_created_at;
+DROP INDEX IF EXISTS public.idx_admin_actions_target;
+DROP INDEX IF EXISTS public.idx_admin_actions_actor_id;
+DROP INDEX IF EXISTS public.idx_moderation_checks_created_at;
+DROP INDEX IF EXISTS public.idx_moderation_checks_result;
+DROP INDEX IF EXISTS public.idx_moderation_checks_target;
+DROP INDEX IF EXISTS public.idx_reviews_rating;
+DROP INDEX IF EXISTS public.idx_reviews_status;
+DROP INDEX IF EXISTS public.idx_reviews_buyer_id;
+DROP INDEX IF EXISTS public.idx_reviews_prompt_id;
+DROP INDEX IF EXISTS public.idx_payouts_requested_at;
+DROP INDEX IF EXISTS public.idx_payouts_status;
+DROP INDEX IF EXISTS public.idx_payouts_seller_id;
+DROP INDEX IF EXISTS public.idx_ledger_entries_created_at;
+DROP INDEX IF EXISTS public.idx_ledger_entries_entry_type;
+DROP INDEX IF EXISTS public.idx_ledger_entries_order_id;
+DROP INDEX IF EXISTS public.idx_ledger_entries_seller_id;
+DROP INDEX IF EXISTS public.idx_entitlements_prompt_version_id;
+DROP INDEX IF EXISTS public.idx_entitlements_buyer_id;
+DROP INDEX IF EXISTS public.idx_payments_status;
+DROP INDEX IF EXISTS public.idx_payments_provider_txn_id;
+DROP INDEX IF EXISTS public.idx_payments_provider_id;
+DROP INDEX IF EXISTS public.idx_payment_providers_code;
+DROP INDEX IF EXISTS public.idx_order_items_prompt_version_id;
+DROP INDEX IF EXISTS public.idx_order_items_prompt_id;
+DROP INDEX IF EXISTS public.idx_order_items_order_id;
+DROP INDEX IF EXISTS public.idx_orders_order_number;
+DROP INDEX IF EXISTS public.idx_orders_created_at;
+DROP INDEX IF EXISTS public.idx_orders_status;
+DROP INDEX IF EXISTS public.idx_orders_buyer_id;
+DROP INDEX IF EXISTS public.idx_cart_items_prompt_id;
+DROP INDEX IF EXISTS public.idx_cart_items_cart_id;
+DROP INDEX IF EXISTS public.idx_carts_temp_key;
+DROP INDEX IF EXISTS public.idx_carts_buyer_id;
+DROP INDEX IF EXISTS public.idx_prompt_localizations_locale;
+DROP INDEX IF EXISTS public.idx_prompt_localizations_prompt_id;
+DROP INDEX IF EXISTS public.idx_prompt_assets_kind;
+DROP INDEX IF EXISTS public.idx_prompt_assets_prompt_version_id;
+DROP INDEX IF EXISTS public.idx_prompt_versions_published_at;
+DROP INDEX IF EXISTS public.idx_prompt_versions_prompt_id;
+DROP INDEX IF EXISTS public.idx_prompt_tags_tag_id;
+DROP INDEX IF EXISTS public.idx_prompts_search;
+DROP INDEX IF EXISTS public.idx_prompts_ratings_count;
+DROP INDEX IF EXISTS public.idx_prompts_avg_rating;
+DROP INDEX IF EXISTS public.idx_prompts_created_at;
+DROP INDEX IF EXISTS public.idx_prompts_price_jpy;
+DROP INDEX IF EXISTS public.idx_prompts_status_visibility;
+DROP INDEX IF EXISTS public.idx_prompts_category_id;
+DROP INDEX IF EXISTS public.idx_prompts_seller_id;
+DROP INDEX IF EXISTS public.idx_seller_payout_accounts_provider;
+DROP INDEX IF EXISTS public.idx_seller_payout_accounts_seller_id;
+DROP INDEX IF EXISTS public.idx_user_profiles_is_banned;
+DROP INDEX IF EXISTS public.idx_user_profiles_role;
+DROP INDEX IF EXISTS public.idx_tags_slug;
+DROP INDEX IF EXISTS public.idx_categories_parent_id;
+DROP INDEX IF EXISTS public.idx_categories_slug;
 
 -- カテゴリテーブルのインデックス
 CREATE INDEX idx_categories_slug ON public.categories(slug);

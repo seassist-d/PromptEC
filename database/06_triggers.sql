@@ -1,6 +1,32 @@
 -- =============================================
--- トリガー定義
+-- トリガー定義（修正版 - 既存のトリガーを安全に削除してから再作成）
 -- =============================================
+
+-- 既存のトリガーを安全に削除
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+DROP TRIGGER IF EXISTS trigger_auto_create_seller_balance ON public.user_profiles;
+DROP TRIGGER IF EXISTS trigger_auto_grant_entitlements ON public.payments;
+DROP TRIGGER IF EXISTS trigger_set_published_timestamp ON public.prompts;
+DROP TRIGGER IF EXISTS trigger_auto_generate_version_number ON public.prompt_versions;
+DROP TRIGGER IF EXISTS audit_trigger_user_profiles ON public.user_profiles;
+DROP TRIGGER IF EXISTS audit_trigger_payments ON public.payments;
+DROP TRIGGER IF EXISTS audit_trigger_orders ON public.orders;
+DROP TRIGGER IF EXISTS audit_trigger_prompts ON public.prompts;
+DROP TRIGGER IF EXISTS trigger_auto_generate_order_number ON public.orders;
+DROP TRIGGER IF EXISTS trigger_auto_generate_prompt_slug ON public.prompts;
+DROP TRIGGER IF EXISTS trigger_update_prompt_popularity ON public.recommendation_events;
+DROP TRIGGER IF EXISTS trigger_update_seller_balance ON public.ledger_entries;
+DROP TRIGGER IF EXISTS trigger_update_prompt_stats ON public.reviews;
+
+-- 既存のトリガー関数を安全に削除
+DROP FUNCTION IF EXISTS create_profile_for_new_user();
+DROP FUNCTION IF EXISTS auto_create_seller_balance();
+DROP FUNCTION IF EXISTS auto_grant_entitlements();
+DROP FUNCTION IF EXISTS set_published_timestamp();
+DROP FUNCTION IF EXISTS auto_generate_version_number();
+DROP FUNCTION IF EXISTS audit_trigger_function();
+DROP FUNCTION IF EXISTS auto_generate_order_number();
+DROP FUNCTION IF EXISTS auto_generate_prompt_slug();
 
 -- プロンプト統計更新トリガー
 CREATE TRIGGER trigger_update_prompt_stats
@@ -52,12 +78,13 @@ CREATE TRIGGER trigger_auto_generate_order_number
     FOR EACH ROW
     EXECUTE FUNCTION auto_generate_order_number();
 
--- 監査ログ記録トリガー
+-- 監査ログ記録トリガー（修正版）
 CREATE OR REPLACE FUNCTION audit_trigger_function()
 RETURNS trigger AS $$
 DECLARE
     old_data jsonb;
     new_data jsonb;
+    entity_id_value uuid;
 BEGIN
     -- 変更前のデータを記録
     IF TG_OP = 'UPDATE' OR TG_OP = 'DELETE' THEN
@@ -69,25 +96,49 @@ BEGIN
         new_data := to_jsonb(NEW);
     END IF;
     
-    -- 監査ログに記録
-    INSERT INTO public.audit_logs (
-        actor_user_id,
-        action,
-        entity_type,
-        entity_id,
-        diff,
-        created_at
-    ) VALUES (
-        auth.uid(),
-        TG_OP || '.' || TG_TABLE_NAME,
-        TG_TABLE_NAME,
-        COALESCE(NEW.id, OLD.id),
-        jsonb_build_object(
-            'old', old_data,
-            'new', new_data
-        ),
-        now()
-    );
+    -- エンティティIDを安全に取得
+    BEGIN
+        CASE TG_TABLE_NAME
+            WHEN 'user_profiles' THEN
+                entity_id_value := COALESCE(NEW.user_id, OLD.user_id);
+            WHEN 'orders' THEN
+                entity_id_value := COALESCE(NEW.id, OLD.id);
+            WHEN 'payments' THEN
+                entity_id_value := COALESCE(NEW.id, OLD.id);
+            WHEN 'prompts' THEN
+                entity_id_value := COALESCE(NEW.id, OLD.id);
+            ELSE
+                entity_id_value := COALESCE(NEW.id, OLD.id);
+        END CASE;
+    EXCEPTION WHEN OTHERS THEN
+        -- エンティティIDの取得に失敗した場合はスキップ
+        RETURN COALESCE(NEW, OLD);
+    END;
+    
+    -- 監査ログに記録（エラーハンドリング付き）
+    BEGIN
+        INSERT INTO public.audit_logs (
+            actor_user_id,
+            action,
+            entity_type,
+            entity_id,
+            diff,
+            created_at
+        ) VALUES (
+            auth.uid(),
+            TG_OP || '.' || TG_TABLE_NAME,
+            TG_TABLE_NAME,
+            entity_id_value,
+            jsonb_build_object(
+                'old', old_data,
+                'new', new_data
+            ),
+            now()
+        );
+    EXCEPTION WHEN OTHERS THEN
+        -- 監査ログの記録に失敗した場合はスキップ（メイン処理は継続）
+        NULL;
+    END;
     
     RETURN COALESCE(NEW, OLD);
 END;
@@ -109,6 +160,7 @@ CREATE TRIGGER audit_trigger_payments
     FOR EACH ROW
     EXECUTE FUNCTION audit_trigger_function();
 
+-- user_profilesテーブルの監査ログトリガーを有効化
 CREATE TRIGGER audit_trigger_user_profiles
     AFTER INSERT OR UPDATE OR DELETE ON public.user_profiles
     FOR EACH ROW

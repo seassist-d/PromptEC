@@ -20,7 +20,7 @@ DROP POLICY IF EXISTS "Admins can view all profiles" ON public.user_profiles;
 DROP POLICY IF EXISTS "Admins can update all profiles" ON public.user_profiles;
 DROP TABLE IF EXISTS public.user_profiles CASCADE;
 --
--- 1. 01_enums.sql - Enum型の定義
+-- 1. 01_enums_fixed.sql - Enum型の定義
 -- 2. 02_tables.sql - テーブルの作成
 -- 3. 03_indexes.sql - インデックスの作成
 -- 4. 04_rls_policies.sql - RLSポリシーの設定

@@ -1,6 +1,33 @@
 -- =============================================
--- Enum型定義
+-- Enum型定義（修正版 - 既存の型を安全に削除してから再作成）
 -- =============================================
+
+-- 既存のEnum型を安全に削除（依存関係がある場合はCASCADEで削除）
+DROP TYPE IF EXISTS user_role CASCADE;
+DROP TYPE IF EXISTS visibility CASCADE;
+DROP TYPE IF EXISTS prompt_status CASCADE;
+DROP TYPE IF EXISTS order_status CASCADE;
+DROP TYPE IF EXISTS payment_status CASCADE;
+DROP TYPE IF EXISTS review_status CASCADE;
+DROP TYPE IF EXISTS payout_status CASCADE;
+DROP TYPE IF EXISTS payout_provider CASCADE;
+DROP TYPE IF EXISTS content_type CASCADE;
+DROP TYPE IF EXISTS asset_kind CASCADE;
+DROP TYPE IF EXISTS ledger_entry_type CASCADE;
+DROP TYPE IF EXISTS ai_job_type CASCADE;
+DROP TYPE IF EXISTS ai_job_status CASCADE;
+DROP TYPE IF EXISTS model_provider CASCADE;
+DROP TYPE IF EXISTS moderation_result CASCADE;
+DROP TYPE IF EXISTS moderation_method CASCADE;
+DROP TYPE IF EXISTS admin_action CASCADE;
+DROP TYPE IF EXISTS preview_type CASCADE;
+DROP TYPE IF EXISTS recommendation_event_type CASCADE;
+DROP TYPE IF EXISTS ranking_type CASCADE;
+DROP TYPE IF EXISTS ranking_period CASCADE;
+DROP TYPE IF EXISTS subscription_status CASCADE;
+DROP TYPE IF EXISTS subscription_period CASCADE;
+DROP TYPE IF EXISTS subscription_plan_status CASCADE;
+DROP TYPE IF EXISTS target_type CASCADE;
 
 -- ユーザーロール
 CREATE TYPE user_role AS ENUM ('user', 'seller', 'admin');

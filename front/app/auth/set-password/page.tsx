@@ -114,7 +114,33 @@ export default function SetPasswordPage() {
 
         setErrors({ general: errorMessage });
       } else {
-        setSuccessMessage('パスワードが正常に設定されました。');
+        // パスワード設定成功後、プロフィール作成処理を実行
+        try {
+          console.log('Creating user profile...');
+          
+          // プロフィール作成処理
+          const { data: profileResult, error: profileError } = await supabase
+            .rpc('update_user_profile', {
+              p_user_id: user.id,
+              p_display_name: user.user_metadata?.display_name || user.email?.split('@')[0] || 'ユーザー',
+              p_bio: null,
+              p_contact: {},
+              p_avatar_url: user.user_metadata?.avatar_url || null
+            });
+
+          if (profileError) {
+            console.error('Profile creation error:', profileError);
+            // プロフィール作成に失敗してもパスワード設定は成功しているので、警告のみ表示
+            setSuccessMessage('パスワードが正常に設定されました。プロフィールの作成に失敗しましたが、後で設定できます。');
+          } else {
+            console.log('Profile created successfully:', profileResult);
+            setSuccessMessage('パスワードが正常に設定され、プロフィールが作成されました。');
+          }
+        } catch (profileError) {
+          console.error('Unexpected error during profile creation:', profileError);
+          // プロフィール作成に失敗してもパスワード設定は成功しているので、警告のみ表示
+          setSuccessMessage('パスワードが正常に設定されました。プロフィールの作成に失敗しましたが、後で設定できます。');
+        }
         
         // 成功後、トップ画面にリダイレクト
         setTimeout(() => {

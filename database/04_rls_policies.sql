@@ -1,6 +1,65 @@
 -- =============================================
--- RLS (Row Level Security) ポリシー設定
+-- RLS (Row Level Security) ポリシー設定（修正版 - 既存のポリシーを安全に削除してから再作成）
 -- =============================================
+
+-- 既存のRLSポリシーを安全に削除
+DROP POLICY IF EXISTS "Admins can manage all subscriptions" ON public.subscriptions;
+DROP POLICY IF EXISTS "Users can manage their own subscriptions" ON public.subscriptions;
+DROP POLICY IF EXISTS "Only admins can manage subscription plans" ON public.subscription_plans;
+DROP POLICY IF EXISTS "Active subscription plans are viewable by everyone" ON public.subscription_plans;
+DROP POLICY IF EXISTS "Only admins can view audit logs" ON public.audit_logs;
+DROP POLICY IF EXISTS "Only admins can insert ranking snapshots" ON public.ranking_snapshots;
+DROP POLICY IF EXISTS "Ranking snapshots are viewable by everyone" ON public.ranking_snapshots;
+DROP POLICY IF EXISTS "Public auto tags are viewable by everyone" ON public.auto_tags;
+DROP POLICY IF EXISTS "Only admins can view recommendation events" ON public.recommendation_events;
+DROP POLICY IF EXISTS "Anyone can insert recommendation events" ON public.recommendation_events;
+DROP POLICY IF EXISTS "Public previews are viewable by everyone" ON public.preview_cache;
+DROP POLICY IF EXISTS "Only admins can manage AI jobs" ON public.ai_jobs;
+DROP POLICY IF EXISTS "Only admins can manage admin actions" ON public.admin_actions;
+DROP POLICY IF EXISTS "Only admins can manage moderation checks" ON public.moderation_checks;
+DROP POLICY IF EXISTS "Admins can manage all reviews" ON public.reviews;
+DROP POLICY IF EXISTS "Users can manage their own reviews" ON public.reviews;
+DROP POLICY IF EXISTS "Public reviews are viewable by everyone" ON public.reviews;
+DROP POLICY IF EXISTS "Admins can manage all payouts" ON public.payouts;
+DROP POLICY IF EXISTS "Users can request payouts" ON public.payouts;
+DROP POLICY IF EXISTS "Users can view their own payouts" ON public.payouts;
+DROP POLICY IF EXISTS "Admins can view all ledger entries" ON public.ledger_entries;
+DROP POLICY IF EXISTS "Users can view their own ledger entries" ON public.ledger_entries;
+DROP POLICY IF EXISTS "Admins can view all balances" ON public.seller_balances;
+DROP POLICY IF EXISTS "Users can view their own balance" ON public.seller_balances;
+DROP POLICY IF EXISTS "Admins can view all entitlements" ON public.entitlements;
+DROP POLICY IF EXISTS "Users can view their own entitlements" ON public.entitlements;
+DROP POLICY IF EXISTS "Admins can view all payments" ON public.payments;
+DROP POLICY IF EXISTS "Users can view their own payments" ON public.payments;
+DROP POLICY IF EXISTS "Admins can view all order items" ON public.order_items;
+DROP POLICY IF EXISTS "Users can view their own order items" ON public.order_items;
+DROP POLICY IF EXISTS "Admins can view all orders" ON public.orders;
+DROP POLICY IF EXISTS "Users can create orders" ON public.orders;
+DROP POLICY IF EXISTS "Users can view their own orders" ON public.orders;
+DROP POLICY IF EXISTS "Anonymous users can manage temp cart items" ON public.cart_items;
+DROP POLICY IF EXISTS "Users can manage their own cart items" ON public.cart_items;
+DROP POLICY IF EXISTS "Anonymous users can manage temp carts" ON public.carts;
+DROP POLICY IF EXISTS "Users can manage their own carts" ON public.carts;
+DROP POLICY IF EXISTS "Admins can view all prompt assets" ON public.prompt_assets;
+DROP POLICY IF EXISTS "Users can view their own prompt assets" ON public.prompt_assets;
+DROP POLICY IF EXISTS "Buyers can view purchased prompt assets" ON public.prompt_assets;
+DROP POLICY IF EXISTS "Public prompt assets are viewable by everyone" ON public.prompt_assets;
+DROP POLICY IF EXISTS "Admins can view all prompt versions" ON public.prompt_versions;
+DROP POLICY IF EXISTS "Users can update their own prompt versions" ON public.prompt_versions;
+DROP POLICY IF EXISTS "Users can insert their own prompt versions" ON public.prompt_versions;
+DROP POLICY IF EXISTS "Users can view their own prompt versions" ON public.prompt_versions;
+DROP POLICY IF EXISTS "Public prompt versions are viewable by everyone" ON public.prompt_versions;
+DROP POLICY IF EXISTS "Admins can update any prompt" ON public.prompts;
+DROP POLICY IF EXISTS "Users can delete their own prompts" ON public.prompts;
+DROP POLICY IF EXISTS "Users can update their own prompts" ON public.prompts;
+DROP POLICY IF EXISTS "Users can insert their own prompts" ON public.prompts;
+DROP POLICY IF EXISTS "Admins can view all prompts" ON public.prompts;
+DROP POLICY IF EXISTS "Users can view their own prompts" ON public.prompts;
+DROP POLICY IF EXISTS "Public prompts are viewable by everyone" ON public.prompts;
+DROP POLICY IF EXISTS "Admins can update any profile" ON public.user_profiles;
+DROP POLICY IF EXISTS "Users can insert their own profile" ON public.user_profiles;
+DROP POLICY IF EXISTS "Users can update their own profile" ON public.user_profiles;
+DROP POLICY IF EXISTS "Public profiles are viewable by everyone" ON public.user_profiles;
 
 -- RLSを有効化
 ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;

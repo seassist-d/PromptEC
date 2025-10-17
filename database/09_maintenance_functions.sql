@@ -1,11 +1,23 @@
 -- =============================================
--- メンテナンス・管理用関数（破壊的操作を含む）
+-- メンテナンス・管理用関数（破壊的操作を含む）（修正版 - 既存の関数を安全に削除してから再作成）
 -- =============================================
 -- 
 -- このファイルには破壊的な操作（DELETE、DROP等）を含む関数が定義されています。
 -- 実行前にデータのバックアップを取ることを強く推奨します。
 -- 
 -- 注意: これらの関数は本番環境では慎重に実行してください。
+
+-- 既存のメンテナンス関数を安全に削除
+DROP FUNCTION IF EXISTS check_database_health();
+DROP FUNCTION IF EXISTS rebuild_indexes();
+DROP FUNCTION IF EXISTS update_database_statistics();
+DROP FUNCTION IF EXISTS run_maintenance_cleanup();
+DROP FUNCTION IF EXISTS cleanup_old_auto_tags();
+DROP FUNCTION IF EXISTS cleanup_old_ranking_snapshots();
+DROP FUNCTION IF EXISTS cleanup_old_recommendation_events();
+DROP FUNCTION IF EXISTS cleanup_old_preview_cache();
+DROP FUNCTION IF EXISTS cleanup_old_ai_jobs();
+DROP FUNCTION IF EXISTS cleanup_expired_sessions();
 
 -- 期限切れセッションクリーンアップ関数
 CREATE OR REPLACE FUNCTION cleanup_expired_sessions()

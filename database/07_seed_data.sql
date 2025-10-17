@@ -1,6 +1,12 @@
 -- =============================================
--- シードデータ（初期データ）
+-- シードデータ（初期データ）（修正版 - 既存のデータを安全に削除してから再作成）
 -- =============================================
+
+-- 既存のシードデータを安全に削除
+DELETE FROM public.subscription_plans WHERE name IN ('ベーシック', 'プロ', 'エンタープライズ', 'ベーシック年額', 'プロ年額');
+DELETE FROM public.tags WHERE slug IN ('ai', 'chatgpt', 'gpt4', 'claude', 'gemini', 'productivity', 'automation', 'templates', 'japanese', 'english', 'beginner', 'advanced', 'business', 'creative', 'technical', 'marketing', 'sales', 'customer_service', 'hr', 'finance', 'legal', 'healthcare', 'education', 'research', 'analysis', 'reporting', 'presentation', 'meeting', 'email', 'social_media', 'content_creation', 'seo', 'copywriting', 'translation', 'proofreading', 'editing', 'summarization', 'brainstorming', 'planning', 'strategy', 'optimization', 'troubleshooting', 'debugging', 'testing', 'documentation', 'tutorial', 'guide', 'tips', 'best_practices', 'case_study', 'examples', 'samples');
+DELETE FROM public.categories WHERE slug IN ('blog_writing', 'technical_writing', 'copywriting', 'javascript', 'python', 'web_development', 'ui_design', 'graphic_design', 'web_design', 'writing', 'coding', 'design', 'business', 'education', 'creative', 'analysis', 'communication', 'productivity', 'other');
+DELETE FROM public.payment_providers WHERE code IN ('card', 'paypal', 'paypay', 'bank_transfer');
 
 -- 決済プロバイダーの初期データ
 INSERT INTO public.payment_providers (code, display_name, fee_percent, meta) VALUES

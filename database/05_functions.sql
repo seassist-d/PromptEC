@@ -1,6 +1,18 @@
 -- =============================================
--- PostgreSQL関数定義
+-- PostgreSQL関数定義（修正版 - 既存の関数を安全に削除してから再作成）
 -- =============================================
+
+-- 既存の関数を安全に削除
+DROP FUNCTION IF EXISTS get_admin_dashboard_stats();
+DROP FUNCTION IF EXISTS update_prompt_popularity();
+DROP FUNCTION IF EXISTS get_sales_statistics(uuid, date, date);
+DROP FUNCTION IF EXISTS check_download_permission(uuid, uuid);
+DROP FUNCTION IF EXISTS search_prompts(text, bigint, integer, integer, text, text, integer, integer);
+DROP FUNCTION IF EXISTS generate_prompt_slug(text);
+DROP FUNCTION IF EXISTS update_seller_balance();
+DROP FUNCTION IF EXISTS calculate_seller_balance(uuid);
+DROP FUNCTION IF EXISTS update_prompt_stats();
+DROP FUNCTION IF EXISTS generate_order_number();
 
 -- 注文番号生成関数
 CREATE OR REPLACE FUNCTION generate_order_number()
@@ -293,6 +305,76 @@ BEGIN
     RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
+
+-- プロフィール更新専用関数
+CREATE OR REPLACE FUNCTION update_user_profile(
+    p_user_id uuid,
+    p_display_name text DEFAULT NULL,
+    p_bio text DEFAULT NULL,
+    p_contact jsonb DEFAULT NULL,
+    p_avatar_url text DEFAULT NULL
+)
+RETURNS TABLE(
+    success boolean,
+    message text,
+    profile_data jsonb
+) AS $$
+DECLARE
+    updated_profile RECORD;
+BEGIN
+    -- プロフィールが存在するかチェック
+    IF NOT EXISTS (SELECT 1 FROM public.user_profiles WHERE user_id = p_user_id) THEN
+        -- プロフィールが存在しない場合は新規作成
+        INSERT INTO public.user_profiles (
+            user_id,
+            display_name,
+            bio,
+            contact,
+            avatar_url,
+            role,
+            is_banned,
+            created_at,
+            updated_at
+        ) VALUES (
+            p_user_id,
+            COALESCE(p_display_name, 'ユーザー'),
+            p_bio,
+            COALESCE(p_contact, '{}'),
+            p_avatar_url,
+            'user',
+            false,
+            now(),
+            now()
+        );
+    ELSE
+        -- プロフィールが存在する場合は更新
+        UPDATE public.user_profiles
+        SET 
+            display_name = COALESCE(p_display_name, display_name),
+            bio = COALESCE(p_bio, bio),
+            contact = COALESCE(p_contact, contact),
+            avatar_url = COALESCE(p_avatar_url, avatar_url),
+            updated_at = now()
+        WHERE user_id = p_user_id;
+    END IF;
+    
+    -- 更新されたプロフィールを取得
+    SELECT * INTO updated_profile
+    FROM public.user_profiles
+    WHERE user_id = p_user_id;
+    
+    RETURN QUERY SELECT 
+        true as success,
+        'プロフィールを更新しました' as message,
+        to_jsonb(updated_profile) as profile_data;
+        
+EXCEPTION WHEN OTHERS THEN
+    RETURN QUERY SELECT 
+        false as success,
+        'プロフィールの更新に失敗しました: ' || SQLERRM as message,
+        NULL::jsonb as profile_data;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- 管理者ダッシュボード統計関数
 CREATE OR REPLACE FUNCTION get_admin_dashboard_stats()

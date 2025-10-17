@@ -1,5 +1,5 @@
 -- =============================================
--- 日本語全文検索設定（オプション）
+-- 日本語全文検索設定（オプション）（修正版 - 既存の設定を安全に削除してから再作成）
 -- =============================================
 -- 
 -- このファイルは、より高度な日本語全文検索を使用したい場合に
@@ -8,6 +8,13 @@
 --
 -- 日本語の形態素解析を使用したい場合は、以下のSQLを実行してください：
 -- （注意: これには追加の拡張機能が必要な場合があります）
+
+-- 既存の日本語検索関連のオブジェクトを安全に削除
+DROP FUNCTION IF EXISTS search_prompts_japanese(text, bigint, integer, integer, text, text, integer, integer);
+DROP INDEX IF EXISTS public.idx_prompts_long_description_trgm;
+DROP INDEX IF EXISTS public.idx_prompts_description_trgm;
+DROP INDEX IF EXISTS public.idx_prompts_title_trgm;
+DROP FUNCTION IF EXISTS japanese_search(text, text);
 
 -- 日本語テキスト検索設定の作成
 -- CREATE TEXT SEARCH CONFIGURATION japanese (COPY = simple);

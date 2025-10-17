@@ -1,6 +1,38 @@
 -- =============================================
--- 基本テーブル作成
+-- 基本テーブル作成（修正版 - 既存のテーブルを安全に削除してから再作成）
 -- =============================================
+
+-- 既存のテーブルを安全に削除（依存関係がある場合はCASCADEで削除）
+DROP TABLE IF EXISTS public.subscriptions CASCADE;
+DROP TABLE IF EXISTS public.subscription_plans CASCADE;
+DROP TABLE IF EXISTS public.audit_logs CASCADE;
+DROP TABLE IF EXISTS public.ranking_snapshots CASCADE;
+DROP TABLE IF EXISTS public.auto_tags CASCADE;
+DROP TABLE IF EXISTS public.recommendation_events CASCADE;
+DROP TABLE IF EXISTS public.preview_cache CASCADE;
+DROP TABLE IF EXISTS public.ai_jobs CASCADE;
+DROP TABLE IF EXISTS public.admin_actions CASCADE;
+DROP TABLE IF EXISTS public.moderation_checks CASCADE;
+DROP TABLE IF EXISTS public.reviews CASCADE;
+DROP TABLE IF EXISTS public.payouts CASCADE;
+DROP TABLE IF EXISTS public.ledger_entries CASCADE;
+DROP TABLE IF EXISTS public.seller_balances CASCADE;
+DROP TABLE IF EXISTS public.entitlements CASCADE;
+DROP TABLE IF EXISTS public.payments CASCADE;
+DROP TABLE IF EXISTS public.payment_providers CASCADE;
+DROP TABLE IF EXISTS public.order_items CASCADE;
+DROP TABLE IF EXISTS public.orders CASCADE;
+DROP TABLE IF EXISTS public.cart_items CASCADE;
+DROP TABLE IF EXISTS public.carts CASCADE;
+DROP TABLE IF EXISTS public.prompt_localizations CASCADE;
+DROP TABLE IF EXISTS public.prompt_assets CASCADE;
+DROP TABLE IF EXISTS public.prompt_versions CASCADE;
+DROP TABLE IF EXISTS public.prompt_tags CASCADE;
+DROP TABLE IF EXISTS public.prompts CASCADE;
+DROP TABLE IF EXISTS public.seller_payout_accounts CASCADE;
+DROP TABLE IF EXISTS public.user_profiles CASCADE;
+DROP TABLE IF EXISTS public.tags CASCADE;
+DROP TABLE IF EXISTS public.categories CASCADE;
 
 -- カテゴリテーブル
 CREATE TABLE public.categories (
