@@ -8,18 +8,22 @@ export function getRedirectUrl(): string {
   if (typeof window !== 'undefined') {
     const { protocol, hostname, port } = window.location;
     const baseUrl = `${protocol}//${hostname}${port ? `:${port}` : ''}`;
+    console.log('Client-side redirect URL:', `${baseUrl}/auth/callback`);
     return `${baseUrl}/auth/callback`;
   }
   
   // サーバーサイドの場合
   if (process.env.NEXT_PUBLIC_SITE_URL) {
+    console.log('Server-side redirect URL from env:', `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`);
     return `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`;
   }
   
   // デフォルト値
   const port = process.env.PORT || '3000';
   const host = process.env.HOST || 'localhost';
-  return `http://${host}:${port}/auth/callback`;
+  const defaultUrl = `http://${host}:${port}/auth/callback`;
+  console.log('Default redirect URL:', defaultUrl);
+  return defaultUrl;
 }
 
 /**
@@ -29,16 +33,21 @@ export function getBaseUrl(): string {
   // クライアントサイドの場合
   if (typeof window !== 'undefined') {
     const { protocol, hostname, port } = window.location;
-    return `${protocol}//${hostname}${port ? `:${port}` : ''}`;
+    const baseUrl = `${protocol}//${hostname}${port ? `:${port}` : ''}`;
+    console.log('Client-side base URL:', baseUrl);
+    return baseUrl;
   }
   
   // サーバーサイドの場合
   if (process.env.NEXT_PUBLIC_SITE_URL) {
+    console.log('Server-side base URL from env:', process.env.NEXT_PUBLIC_SITE_URL);
     return process.env.NEXT_PUBLIC_SITE_URL;
   }
   
   // デフォルト値
   const port = process.env.PORT || '3000';
   const host = process.env.HOST || 'localhost';
-  return `http://${host}:${port}`;
+  const defaultUrl = `http://${host}:${port}`;
+  console.log('Default base URL:', defaultUrl);
+  return defaultUrl;
 }
