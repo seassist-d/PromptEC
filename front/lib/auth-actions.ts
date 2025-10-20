@@ -66,15 +66,20 @@ export async function registerUser(formData: FormData): Promise<RegisterResult> 
       console.error('Supabase health check error:', healthError);
     }
     
-    // まず、Supabaseの認証設定を確認
-    console.log('Attempting OTP sign-in with email:', email);
-    console.log('Redirect URL:', redirectUrl);
+    // パスワード付き登録を試行（メール認証の問題を回避）
+    console.log('Attempting password-based registration with email:', email);
     
-    const { data, error } = await supabaseServer.auth.signInWithOtp({
+    // 一時的なパスワードを生成
+    const tempPassword = Math.random().toString(36).slice(-12) + 'A1!';
+    
+    const { data, error } = await supabaseServer.auth.signUp({
       email,
+      password: tempPassword,
       options: {
         emailRedirectTo: redirectUrl,
-        shouldCreateUser: true, // ユーザーが存在しない場合は作成
+        data: {
+          display_name: email.split('@')[0], // メールアドレスの@より前を表示名として使用
+        },
       },
     });
 
@@ -127,11 +132,25 @@ export async function registerUser(formData: FormData): Promise<RegisterResult> 
     }
 
     // 登録成功
-    return {
-      success: true,
-      message: '認証メールを送信しました。メール内のリンクをクリックしてアカウントを有効化してください。',
-      user: data.user,
-    };
+    if (data.user && !data.user.email_confirmed_at) {
+      return {
+        success: true,
+        message: 'アカウントを作成しました。メール内のリンクをクリックしてアカウントを有効化してください。',
+        user: data.user,
+      };
+    } else if (data.user && data.user.email_confirmed_at) {
+      return {
+        success: true,
+        message: 'アカウントが正常に作成されました。',
+        user: data.user,
+      };
+    } else {
+      return {
+        success: true,
+        message: '登録処理を完了しました。',
+        user: data.user,
+      };
+    }
 
   } catch (error) {
     console.error('Unexpected error during registration:', error);

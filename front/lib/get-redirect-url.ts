@@ -12,18 +12,20 @@ export function getRedirectUrl(): string {
     return `${baseUrl}/auth/callback`;
   }
   
-  // サーバーサイドの場合
+  // サーバーサイドの場合 - 動的にポートを検出
+  const port = process.env.PORT || process.env.NEXT_PUBLIC_PORT || '3000';
+  const host = process.env.HOST || 'localhost';
+  
+  // 環境変数が設定されている場合はそれを使用
   if (process.env.NEXT_PUBLIC_SITE_URL) {
     console.log('Server-side redirect URL from env:', `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`);
     return `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`;
   }
   
-  // デフォルト値
-  const port = process.env.PORT || '3000';
-  const host = process.env.HOST || 'localhost';
-  const defaultUrl = `http://${host}:${port}/auth/callback`;
-  console.log('Default redirect URL:', defaultUrl);
-  return defaultUrl;
+  // 動的にポートを検出してURLを生成
+  const dynamicUrl = `http://${host}:${port}/auth/callback`;
+  console.log('Dynamic redirect URL:', dynamicUrl);
+  return dynamicUrl;
 }
 
 /**
