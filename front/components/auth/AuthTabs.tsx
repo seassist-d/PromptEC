@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import LoginForm from './LoginForm';
-import RegisterForm from './RegisterForm';
 import SocialLoginButtons from './SocialLoginButtons';
 
 export default function AuthTabs() {
@@ -104,15 +103,15 @@ export default function AuthTabs() {
             </div>
           </div>
 
-          <RegisterForm onSuccess={handleSuccess} onError={handleError} />
+          <LoginForm onSuccess={handleSuccess} onError={handleError} />
         </div>
 
         {/* ログインリンク */}
         <div className="text-center">
           <p className="text-sm text-gray-600">
-            既にアカウントをお持ちの方は{' '}
-            <a href="/auth/login" className="font-medium text-blue-600 hover:text-blue-500">
-              ログイン
+            アカウントをお持ちでない方は{' '}
+            <a href="/auth/register" className="font-medium text-blue-600 hover:text-blue-500">
+              新規登録
             </a>
           </p>
         </div>

@@ -201,155 +201,24 @@ export async function getProfileClient(): Promise<{ success: boolean; user?: Use
     });
 
     if (profileError) {
-      console.error('Profile fetch error:', {
-        message: profileError.message || 'No message',
-        code: profileError.code || 'No code',
-        details: profileError.details || 'No details',
-        hint: profileError.hint || 'No hint',
-        fullError: profileError,
-        errorType: typeof profileError,
-        errorKeys: Object.keys(profileError || {}),
-        errorStringified: JSON.stringify(profileError, null, 2),
-        // より詳細なエラー情報を追加
-        errorConstructor: profileError.constructor?.name || 'Unknown',
-        errorPrototype: Object.getPrototypeOf(profileError),
-        errorToString: profileError.toString(),
-        errorValueOf: profileError.valueOf(),
-        // エラーが空オブジェクトかどうかをチェック
-        isEmpty: Object.keys(profileError).length === 0,
-        // エラーの各プロパティを個別にチェック
-        errorProperties: Object.getOwnPropertyNames(profileError),
-        errorDescriptors: Object.getOwnPropertyDescriptors(profileError)
-      });
+      // デバッグ: エラーの詳細を一度だけ確認（この後削除予定）
+      console.log('[DEBUG] profileError type:', typeof profileError);
+      console.log('[DEBUG] profileError keys:', Object.keys(profileError));
+      console.log('[DEBUG] profileError values:', Object.values(profileError));
+      console.log('[DEBUG] profileError JSON:', JSON.stringify(profileError));
+      console.log('[DEBUG] profileError.code:', profileError.code);
+      console.log('[DEBUG] profileError.message:', profileError.message);
+      console.log('[DEBUG] profileError.details:', profileError.details);
       
-      // テーブルが存在しない場合のエラーハンドリング
-      if (profileError.message?.includes("Could not find the table 'public.user_profiles'") || 
-          profileError.message?.includes("relation \"public.user_profiles\" does not exist")) {
-        console.error('Database table user_profiles does not exist. Please create the table in Supabase.');
-        console.error('Run the SQL script in database/02_tables.sql in Supabase SQL Editor');
-        return {
-          success: false,
-          error: 'データベーステーブルが存在しません。SupabaseのSQL Editorでdatabase/02_tables.sqlを実行してください。'
-        };
-      }
-      
-      // RLS（Row Level Security）の問題の場合
-      if (profileError.message?.includes('permission denied') || 
-          profileError.message?.includes('insufficient_privilege')) {
-        console.error('RLS permission error:', profileError);
-        return {
-          success: false,
-          error: 'データベースのアクセス権限に問題があります。RLSポリシーを確認してください。'
-        };
-      }
-      
-      // プロフィールが存在しない場合は新規作成
-      if (profileError.code === 'PGRST116' || profileError.message?.includes('No rows found')) {
-        console.log('Profile not found, creating new profile...');
-        
-        // データベース関数を使用してプロフィールを作成
-        const { data: functionResult, error: functionError } = await supabase
-          .rpc('update_user_profile', {
-            p_user_id: authUser.id,
-            p_display_name: authUser.user_metadata?.display_name || authUser.email?.split('@')[0] || 'ユーザー',
-            p_bio: null,
-            p_contact: {},
-            p_avatar_url: authUser.user_metadata?.avatar_url || null
-          });
-
-        if (functionError) {
-          console.error('Profile creation function error:', {
-            message: functionError.message || 'No message',
-            code: functionError.code || 'No code',
-            details: functionError.details || 'No details',
-            hint: functionError.hint || 'No hint',
-            fullError: functionError,
-            errorType: typeof functionError,
-            errorKeys: Object.keys(functionError || {}),
-            errorStringified: JSON.stringify(functionError, null, 2)
-          });
-          
-          // フォールバックとして認証情報からプロフィールを構築
-          console.log('Using fallback profile from auth data');
-          const fallbackUser: User = {
-            id: authUser.id,
-            email: authUser.email || '',
-            display_name: authUser.user_metadata?.display_name || authUser.email?.split('@')[0] || 'ユーザー',
-            avatar_url: authUser.user_metadata?.avatar_url || null,
-            bio: undefined,
-            contact: {},
-            role: 'user',
-            is_banned: false,
-            created_at: authUser.created_at || new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          };
-
-          return {
-            success: true,
-            user: fallbackUser
-          };
-        }
-
-        const result = functionResult[0];
-        if (!result.success) {
-          console.error('Profile creation failed:', result.message);
-          
-          // フォールバックとして認証情報からプロフィールを構築
-          console.log('Using fallback profile from auth data');
-          const fallbackUser: User = {
-            id: authUser.id,
-            email: authUser.email || '',
-            display_name: authUser.user_metadata?.display_name || authUser.email?.split('@')[0] || 'ユーザー',
-            avatar_url: authUser.user_metadata?.avatar_url || null,
-            bio: undefined,
-            contact: {},
-            role: 'user',
-            is_banned: false,
-            created_at: authUser.created_at || new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          };
-
-          return {
-            success: true,
-            user: fallbackUser
-          };
-        }
-
-        const profileData = result.profile_data;
-        const user: User = {
-          id: authUser.id,
-          email: authUser.email || '',
-          display_name: profileData.display_name,
-          avatar_url: profileData.avatar_url,
-          bio: profileData.bio,
-          contact: profileData.contact,
-          role: profileData.role || 'user',
-          is_banned: profileData.is_banned || false,
-          created_at: profileData.created_at,
-          updated_at: profileData.updated_at
-        };
-
-        return {
-          success: true,
-          user
-        };
-      }
-      
-      // その他のエラーの場合、認証情報からプロフィールを構築
-      console.log('Using fallback profile from auth data due to error:', profileError);
-      
-      // エラーの詳細をログに出力
-      if (profileError.message) {
-        console.error('Profile error message:', profileError.message);
-      }
-      if (profileError.code) {
-        console.error('Profile error code:', profileError.code);
-      }
+      // プロフィールが存在しない場合やエラーが発生した場合は認証情報からフォールバック
+      console.log('Using fallback profile from auth data');
       
       const fallbackUser: User = {
         id: authUser.id,
         email: authUser.email || '',
-        display_name: authUser.user_metadata?.display_name || authUser.email?.split('@')[0] || 'ユーザー',
+        display_name: authUser.user_metadata?.display_name || 
+                     authUser.user_metadata?.full_name || 
+                     authUser.email?.split('@')[0] || 'ユーザー',
         avatar_url: authUser.user_metadata?.avatar_url || null,
         bio: undefined,
         contact: {},
@@ -358,7 +227,9 @@ export async function getProfileClient(): Promise<{ success: boolean; user?: Use
         created_at: authUser.created_at || new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
-
+      
+      console.log('Created fallback user:', fallbackUser);
+      
       return {
         success: true,
         user: fallbackUser

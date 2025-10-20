@@ -65,10 +65,10 @@ export default function AuthCallbackPage() {
           if (data.session) {
             console.log('Session set successfully:', data.session.user.email);
             console.log('User email confirmed:', data.session.user.email_confirmed_at);
-            console.log('Redirecting to password setup...');
+            console.log('Redirecting to profile...');
             
-            // OTP認証成功 - パスワード設定ページにリダイレクト
-            router.push('/auth/set-password');
+            // ソーシャルログイン成功 - プロフィールページにリダイレクト
+            router.push('/profile');
             return;
           } else {
             console.log('No session found after setting tokens');
@@ -89,9 +89,9 @@ export default function AuthCallbackPage() {
         
         if (session) {
           console.log('Existing session found:', session.user.email);
-          console.log('Redirecting to password setup from existing session...');
-          // 既存セッション - パスワード設定ページにリダイレクト
-          router.push('/auth/set-password');
+          console.log('Redirecting to profile from existing session...');
+          // 既存セッション - プロフィールページにリダイレクト
+          router.push('/profile');
         } else {
           console.log('No session found, redirecting to login...');
           // セッションが見つからない場合

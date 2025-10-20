@@ -31,10 +31,6 @@ export interface AuthUser {
   };
 }
 
-export interface RegisterFormData {
-  email: string;
-}
-
 export interface LoginFormData {
   email: string;
   password: string;
@@ -51,7 +47,6 @@ export interface AuthContextType {
   user: User | null;
   loading: boolean;
   error: string | null;
-  signUp: (data: RegisterFormData) => Promise<{ success: boolean; message: string }>;
   signIn: (data: LoginFormData) => Promise<{ success: boolean; message: string }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ success: boolean; message: string }>;
@@ -63,10 +58,6 @@ export interface ServerActionResult<T = any> {
   message: string;
   data?: T;
   error?: string;
-}
-
-export interface RegisterServerResult extends ServerActionResult {
-  user?: AuthUser;
 }
 
 export interface LoginServerResult extends ServerActionResult {

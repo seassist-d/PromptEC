@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import RegisterForm from '@/components/auth/RegisterForm';
 import SocialLoginButtons from '@/components/auth/SocialLoginButtons';
 
 export default function RegisterPage() {
@@ -66,7 +65,6 @@ export default function RegisterPage() {
               </div>
               <div className="ml-3">
                 <p className="text-sm font-medium">{successMessage}</p>
-                <p className="text-sm mt-1">メール内のリンクをクリックしてアカウントを有効化してください。</p>
               </div>
             </div>
           </div>
@@ -88,21 +86,9 @@ export default function RegisterPage() {
           </div>
         )}
 
-        {/* 外部連携ボタンとフォーム */}
+        {/* ソーシャルログインボタンのみ */}
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
           <SocialLoginButtons onSuccess={handleSuccess} onError={handleError} />
-          
-          {/* 区切り線 */}
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">または</span>
-            </div>
-          </div>
-
-          <RegisterForm onSuccess={handleSuccess} onError={handleError} />
         </div>
 
         {/* ログインリンク */}

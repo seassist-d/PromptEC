@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabaseClient';
 
 interface SocialLoginButtonsProps {
   onSuccess?: (message: string) => void;
@@ -13,17 +14,74 @@ export default function SocialLoginButtons({ onSuccess, onError }: SocialLoginBu
   useEffect(() => {
     setMounted(true);
   }, []);
-  const handleSocialLogin = async (provider: string) => {
+
+  const handleGoogleLogin = async () => {
     try {
-      // TODO: 実際の外部認証処理を実装
-      console.log(`${provider} でのログインを試行中...`);
+      console.log('Google認証を開始します...');
       
-      // 模擬的な遅延
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`
+        }
+      });
       
-      onSuccess?.(`${provider} でのログインに成功しました`);
+      if (error) {
+        console.error('Google認証エラー:', error);
+        onError?.(`Google認証に失敗しました: ${error.message}`);
+      } else {
+        console.log('Google認証リダイレクト開始:', data);
+        // リダイレクトが開始されるので、ここでは成功メッセージは表示しない
+      }
     } catch (error) {
-      onError?.(`${provider} でのログインに失敗しました`);
+      console.error('Google認証で予期しないエラー:', error);
+      onError?.(`Google認証でエラーが発生しました`);
+    }
+  };
+
+  const handleMicrosoftLogin = async () => {
+    try {
+      console.log('Microsoft認証を開始します...');
+      
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'azure',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`
+        }
+      });
+      
+      if (error) {
+        console.error('Microsoft認証エラー:', error);
+        onError?.(`Microsoft認証に失敗しました: ${error.message}`);
+      } else {
+        console.log('Microsoft認証リダイレクト開始:', data);
+      }
+    } catch (error) {
+      console.error('Microsoft認証で予期しないエラー:', error);
+      onError?.(`Microsoft認証でエラーが発生しました`);
+    }
+  };
+
+  const handleAppleLogin = async () => {
+    try {
+      console.log('Apple認証を開始します...');
+      
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'apple',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`
+        }
+      });
+      
+      if (error) {
+        console.error('Apple認証エラー:', error);
+        onError?.(`Apple認証に失敗しました: ${error.message}`);
+      } else {
+        console.log('Apple認証リダイレクト開始:', data);
+      }
+    } catch (error) {
+      console.error('Apple認証で予期しないエラー:', error);
+      onError?.(`Apple認証でエラーが発生しました`);
     }
   };
 
@@ -43,7 +101,7 @@ export default function SocialLoginButtons({ onSuccess, onError }: SocialLoginBu
         {/* Google */}
         <button
           type="button"
-          onClick={() => handleSocialLogin('Google')}
+          onClick={handleGoogleLogin}
           className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -70,7 +128,7 @@ export default function SocialLoginButtons({ onSuccess, onError }: SocialLoginBu
         {/* Microsoft */}
         <button
           type="button"
-          onClick={() => handleSocialLogin('Microsoft')}
+          onClick={handleMicrosoftLogin}
           className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -85,7 +143,7 @@ export default function SocialLoginButtons({ onSuccess, onError }: SocialLoginBu
         {/* Apple */}
         <button
           type="button"
-          onClick={() => handleSocialLogin('Apple')}
+          onClick={handleAppleLogin}
           className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">

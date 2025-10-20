@@ -5,7 +5,7 @@ import type { ProfileFormData, ProfileUpdateResult, User } from '../types/auth';
 
 export async function updateProfile(formData: ProfileFormData): Promise<ProfileUpdateResult> {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
     
     // 現在のユーザーを取得
     const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
@@ -130,7 +130,7 @@ export async function updateProfile(formData: ProfileFormData): Promise<ProfileU
 
 export async function getProfile(): Promise<{ success: boolean; user?: User; error?: string }> {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
     
     const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
     
