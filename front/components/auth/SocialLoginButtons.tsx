@@ -42,13 +42,23 @@ export default function SocialLoginButtons({ onSuccess, onError }: SocialLoginBu
   const handleMicrosoftLogin = async () => {
     try {
       console.log('Microsoft認証を開始します...');
+      console.log('Current origin:', window.location.origin);
+      console.log('Redirect URL:', `${window.location.origin}/auth/callback`);
       
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'azure',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`
+          redirectTo: `${window.location.origin}/auth/callback`,
+          scopes: 'openid profile email offline_access',
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+            response_type: 'code'
+          }
         }
       });
+      
+      console.log('OAuth response:', { data, error });
       
       if (error) {
         console.error('Microsoft認証エラー:', error);

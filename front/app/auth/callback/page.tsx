@@ -65,10 +65,10 @@ export default function AuthCallbackPage() {
           if (data.session) {
             console.log('Session set successfully:', data.session.user.email);
             console.log('User email confirmed:', data.session.user.email_confirmed_at);
-            console.log('Redirecting to profile...');
+            console.log('Redirecting to top page...');
             
-            // ソーシャルログイン成功 - プロフィールページにリダイレクト
-            router.push('/profile');
+            // ソーシャルログイン成功 - トップページにリダイレクト
+            router.push('/');
             return;
           } else {
             console.log('No session found after setting tokens');
@@ -89,9 +89,9 @@ export default function AuthCallbackPage() {
         
         if (session) {
           console.log('Existing session found:', session.user.email);
-          console.log('Redirecting to profile from existing session...');
-          // 既存セッション - プロフィールページにリダイレクト
-          router.push('/profile');
+          console.log('Redirecting to top page from existing session...');
+          // 既存セッション - トップページにリダイレクト
+          router.push('/');
         } else {
           console.log('No session found, redirecting to login...');
           // セッションが見つからない場合
