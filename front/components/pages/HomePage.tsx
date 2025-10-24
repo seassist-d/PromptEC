@@ -1,6 +1,51 @@
+'use client';
+
 import Link from 'next/link';
+import { useState, useEffect } from 'react';
+
+interface Category {
+  id: number;
+  name: string;
+  slug: string;
+}
 
 export default function HomePage() {
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await fetch('/api/categories');
+        if (response.ok) {
+          const data = await response.json();
+          setCategories(data.categories || []);
+        }
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCategories();
+  }, []);
+
+  const categoryIcons: { [key: string]: string } = {
+    'ライティング': '✍️',
+    'マーケティング': '📈',
+    'プログラミング': '💻',
+    'デザイン': '🎨',
+    'ビジネス': '💼',
+    '教育': '📚',
+    'クリエイティブ': '🎭',
+    'テクノロジー': '⚡',
+    'ライフスタイル': '🌟',
+    'エンターテイメント': '🎬',
+    'ヘルスケア': '🏥',
+    'ファイナンス': '💰',
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* ヒーローセクション */}
@@ -13,13 +58,26 @@ export default function HomePage() {
             <p className="text-xl md:text-2xl mb-8 text-blue-100">
               AIプロンプトのマーケットプレイスで、高品質なプロンプトを購入・販売
             </p>
+            
+            {/* ヒーロー検索バー */}
+            <div className="max-w-2xl mx-auto mb-8">
+              <form action="/search" method="GET" className="relative">
+                <input
+                  type="text"
+                  name="q"
+                  placeholder="プロンプトを検索..."
+                  className="w-full px-6 py-4 bg-white text-gray-900 placeholder-gray-500 border-0 rounded-lg shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-300 text-lg"
+                />
+                <button 
+                  type="submit"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors"
+                >
+                  検索
+                </button>
+              </form>
+            </div>
+            
             <div className="space-x-4">
-              <Link
-                href="/prompts"
-                className="inline-block bg-white text-blue-600 px-8 py-3 rounded-lg text-lg font-semibold hover:bg-gray-100 transition-colors"
-              >
-                今すぐ検索
-              </Link>
               <Link
                 href="/auth/register"
                 className="inline-block border-2 border-white text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors"
@@ -70,7 +128,7 @@ export default function HomePage() {
           </div>
           <div className="text-center mt-8">
             <Link
-              href="/prompts"
+              href="/search"
               className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
             >
               すべてのプロンプトを見る
@@ -85,25 +143,33 @@ export default function HomePage() {
           <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">
             カテゴリから探す
           </h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
-            {[
-              { name: 'ライティング', icon: '✍️' },
-              { name: 'マーケティング', icon: '📈' },
-              { name: 'プログラミング', icon: '💻' },
-              { name: 'デザイン', icon: '🎨' },
-              { name: 'ビジネス', icon: '💼' },
-              { name: '教育', icon: '📚' },
-            ].map((category) => (
-              <Link
-                key={category.name}
-                href={`/prompts?category=${category.name}`}
-                className="flex flex-col items-center p-6 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <span className="text-4xl mb-3">{category.icon}</span>
-                <span className="text-sm font-medium text-gray-900">{category.name}</span>
-              </Link>
-            ))}
-          </div>
+          {loading ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
+              {Array.from({ length: 6 }).map((_, index) => (
+                <div key={index} className="flex flex-col items-center p-6 bg-gray-50 rounded-lg animate-pulse">
+                  <div className="w-12 h-12 bg-gray-200 rounded mb-3"></div>
+                  <div className="h-4 bg-gray-200 rounded w-16"></div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
+              {categories.slice(0, 12).map((category) => (
+                <Link
+                  key={category.id}
+                  href={`/search?category=${category.id}`}
+                  className="flex flex-col items-center p-6 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  <span className="text-4xl mb-3">
+                    {categoryIcons[category.name] || '📝'}
+                  </span>
+                  <span className="text-sm font-medium text-gray-900 text-center">
+                    {category.name}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -124,7 +190,7 @@ export default function HomePage() {
               無料でアカウント作成
             </Link>
             <Link
-              href="/prompts"
+              href="/search"
               className="inline-block border-2 border-white text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors"
             >
               プロンプトを探す
