@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { PromptDetail as PromptDetailType } from '@/types/prompt';
+import { useAuth } from '@/lib/useAuth';
 
 interface PromptDetailProps {
   slug: string;
@@ -12,6 +13,7 @@ export default function PromptDetail({ slug }: PromptDetailProps) {
   const [prompt, setPrompt] = useState<PromptDetailType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
     const fetchPrompt = async () => {
@@ -51,6 +53,29 @@ export default function PromptDetail({ slug }: PromptDetailProps) {
       month: 'long',
       day: 'numeric',
     });
+  };
+
+  const handleDeletePrompt = async () => {
+    if (!confirm('このプロンプトを削除しますか？この操作は取り消せません。')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/prompts/${slug}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'プロンプトの削除に失敗しました');
+      }
+
+      // プロフィールページにリダイレクト
+      window.location.href = '/profile';
+    } catch (error) {
+      console.error('Prompt deletion error:', error);
+      alert(error instanceof Error ? error.message : 'プロンプトの削除に失敗しました');
+    }
   };
 
   const renderStars = (rating: number) => {
@@ -225,10 +250,27 @@ export default function PromptDetail({ slug }: PromptDetailProps) {
             </div>
           </div>
 
-          {/* 購入ボタン */}
-          <button className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
-            カートに追加
-          </button>
+          {/* アクションボタン */}
+          {user && user.id === prompt.seller_id ? (
+            <div className="space-y-3">
+              <Link
+                href={`/prompts/${prompt.slug}/edit`}
+                className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors text-center block"
+              >
+                プロンプトを編集
+              </Link>
+              <button
+                onClick={handleDeletePrompt}
+                className="w-full bg-red-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-red-700 transition-colors"
+              >
+                プロンプトを削除
+              </button>
+            </div>
+          ) : (
+            <button className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
+              カートに追加
+            </button>
+          )}
 
           {/* 出品者情報 */}
           <div className="bg-gray-50 p-4 rounded-lg">

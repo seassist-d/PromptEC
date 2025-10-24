@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import { useAuth } from '@/lib/useAuth';
 
 interface Category {
   id: number;
@@ -12,6 +13,7 @@ interface Category {
 export default function HomePage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -78,12 +80,29 @@ export default function HomePage() {
             </div>
             
             <div className="space-x-4">
-              <Link
-                href="/auth/register"
-                className="inline-block border-2 border-white text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors"
-              >
-                無料で始める
-              </Link>
+              {user ? (
+                <>
+                  <Link
+                    href="/profile"
+                    className="inline-block bg-white text-blue-600 px-8 py-3 rounded-lg text-lg font-semibold hover:bg-gray-100 transition-colors"
+                  >
+                    出品プロンプトを確認
+                  </Link>
+                  <Link
+                    href="/prompts/create"
+                    className="inline-block border-2 border-white text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors"
+                  >
+                    プロンプトを出品
+                  </Link>
+                </>
+              ) : (
+                <Link
+                  href="/auth/register"
+                  className="inline-block border-2 border-white text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors"
+                >
+                  無料で始める
+                </Link>
+              )}
             </div>
           </div>
         </div>
@@ -183,18 +202,43 @@ export default function HomePage() {
             高品質なプロンプトを購入したり、自作のプロンプトを販売したりできます
           </p>
           <div className="space-x-4">
-            <Link
-              href="/auth/register"
-              className="inline-block bg-white text-blue-600 px-8 py-3 rounded-lg text-lg font-semibold hover:bg-gray-100 transition-colors"
-            >
-              無料でアカウント作成
-            </Link>
-            <Link
-              href="/search"
-              className="inline-block border-2 border-white text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors"
-            >
-              プロンプトを探す
-            </Link>
+            {user ? (
+              <>
+                <Link
+                  href="/profile"
+                  className="inline-block bg-white text-blue-600 px-8 py-3 rounded-lg text-lg font-semibold hover:bg-gray-100 transition-colors"
+                >
+                  出品プロンプトを確認
+                </Link>
+                <Link
+                  href="/prompts/create"
+                  className="inline-block bg-white text-blue-600 px-8 py-3 rounded-lg text-lg font-semibold hover:bg-gray-100 transition-colors"
+                >
+                  プロンプトを出品
+                </Link>
+                <Link
+                  href="/search"
+                  className="inline-block border-2 border-white text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors"
+                >
+                  プロンプトを探す
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/auth/register"
+                  className="inline-block bg-white text-blue-600 px-8 py-3 rounded-lg text-lg font-semibold hover:bg-gray-100 transition-colors"
+                >
+                  無料でアカウント作成
+                </Link>
+                <Link
+                  href="/search"
+                  className="inline-block border-2 border-white text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors"
+                >
+                  プロンプトを探す
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </section>

@@ -1,6 +1,68 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase-server';
 
+export async function GET(request: NextRequest) {
+  try {
+    const supabase = await createClient();
+    
+    // 認証チェック
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      return NextResponse.json(
+        { message: '認証が必要です' },
+        { status: 401 }
+      );
+    }
+
+    // ユーザーのプロンプトを取得
+    const { data: prompts, error } = await supabase
+      .from('prompts')
+      .select(`
+        id,
+        title,
+        slug,
+        seller_id,
+        category_id,
+        thumbnail_url,
+        price_jpy,
+        short_description,
+        long_description,
+        sample_output,
+        avg_rating,
+        ratings_count,
+        view_count,
+        like_count,
+        created_at,
+        updated_at,
+        status,
+        visibility,
+        categories!inner(id, name, slug)
+      `)
+      .eq('seller_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching user prompts:', error);
+      return NextResponse.json(
+        { message: 'プロンプトの取得に失敗しました', details: error.message },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      prompts: prompts || []
+    });
+
+  } catch (error) {
+    console.error('API error:', error);
+    return NextResponse.json(
+      { message: 'サーバーエラーが発生しました', details: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
@@ -49,7 +111,7 @@ export async function POST(request: NextRequest) {
         short_description: description,
         long_description: content,
         category_id: parseInt(category_id),
-        price_jpy: parseInt(price),
+        price_jpy: parseFloat(price),
         seller_id: user.id,
         slug: `${slug}-${Date.now()}`,
         status: 'published',

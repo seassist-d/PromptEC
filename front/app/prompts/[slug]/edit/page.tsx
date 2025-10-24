@@ -4,9 +4,10 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/useAuth';
 
-export default function PromptCreatePage() {
+export default function PromptEditPage({ params }: { params: Promise<{ slug: string }> }) {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
+  const [slug, setSlug] = useState<string>('');
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -16,31 +17,84 @@ export default function PromptCreatePage() {
     tags: ''
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(true);
   const [error, setError] = useState<string>('');
   const [categories, setCategories] = useState<Array<{id: number, name: string}>>([]);
   const [validationErrors, setValidationErrors] = useState<{[key: string]: string}>({});
 
   useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/auth/login');
-      return;
-    }
-
-    // カテゴリ一覧を取得
-    const fetchCategories = async () => {
-      try {
-        const response = await fetch('/api/categories');
-        if (response.ok) {
-          const data = await response.json();
-          setCategories(data.categories || []);
-        }
-      } catch (error) {
-        console.error('Error fetching categories:', error);
+    const initializePage = async () => {
+      // 認証状態の確認
+      if (!authLoading && !user) {
+        router.push('/auth/login');
+        return;
       }
+
+      // ユーザーIDが取得できない場合は待機
+      if (!authLoading && user && !user.id) {
+        console.error('User ID is not available');
+        setError('認証情報が正しくありません');
+        setIsLoadingData(false);
+        return;
+      }
+
+      // パラメータを取得
+      const resolvedParams = await params;
+      setSlug(resolvedParams.slug);
+
+      // 認証が完了している場合のみデータを取得
+      if (user && user.id) {
+        // カテゴリ一覧を取得
+        try {
+          const response = await fetch('/api/categories');
+          if (response.ok) {
+            const data = await response.json();
+            setCategories(data.categories || []);
+          }
+        } catch (error) {
+          console.error('Error fetching categories:', error);
+        }
+
+        // プロンプトデータを取得
+        try {
+          const response = await fetch(`/api/prompts/${resolvedParams.slug}`);
+          if (response.ok) {
+            const promptData = await response.json();
+            
+            // 自分のプロンプトかチェック
+            if (promptData.seller_id !== user.id) {
+              setError('このプロンプトを編集する権限がありません');
+              setIsLoadingData(false);
+              return;
+            }
+
+            setFormData({
+              title: promptData.title || '',
+              description: promptData.short_description || '',
+              content: promptData.long_description || '',
+              category_id: promptData.category_id?.toString() || '',
+              price: promptData.price_jpy?.toString() || '',
+              tags: '' // タグは別途取得が必要
+            });
+          } else {
+            const errorData = await response.json();
+            setError(errorData.error || 'プロンプトの取得に失敗しました');
+          }
+        } catch (error) {
+          console.error('Error fetching prompt:', error);
+          setError('プロンプトの取得に失敗しました');
+        }
+      } else {
+        // 認証が完了していない場合は待機
+        setIsLoadingData(false);
+        return;
+      }
+      
+      setIsLoadingData(false);
     };
 
-    fetchCategories();
-  }, [user, authLoading, router]);
+    initializePage();
+  }, [user, authLoading, router, params]);
 
   const validateForm = () => {
     const errors: {[key: string]: string} = {};
@@ -104,7 +158,6 @@ export default function PromptCreatePage() {
       [name]: value
     }));
 
-    // リアルタイムバリデーション
     if (validationErrors[name]) {
       setValidationErrors(prev => ({
         ...prev,
@@ -124,22 +177,17 @@ export default function PromptCreatePage() {
     setError('');
 
     try {
-      if (!user) {
-        throw new Error('ユーザー情報が見つかりません');
-      }
-
       const promptData = {
         title: formData.title.trim(),
         description: formData.description.trim(),
         content: formData.content.trim(),
         category_id: parseInt(formData.category_id),
         price: parseFloat(formData.price),
-        tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag),
-        seller_id: user.id
+        tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag)
       };
 
-      const response = await fetch('/api/prompts', {
-        method: 'POST',
+      const response = await fetch(`/api/prompts/${slug}`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -148,25 +196,74 @@ export default function PromptCreatePage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'プロンプトの登録に失敗しました');
+        throw new Error(errorData.message || 'プロンプトの更新に失敗しました');
       }
 
       const result = await response.json();
-      router.push(`/prompts/${result.prompt.slug}`);
+      router.push(`/prompts/${slug}`);
     } catch (error) {
-      console.error('Prompt creation error:', error);
-      setError(error instanceof Error ? error.message : 'プロンプトの登録に失敗しました');
+      console.error('Prompt update error:', error);
+      setError(error instanceof Error ? error.message : 'プロンプトの更新に失敗しました');
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (authLoading) {
+  const handleDelete = async () => {
+    if (!confirm('このプロンプトを削除しますか？この操作は取り消せません。')) {
+      return;
+    }
+
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const response = await fetch(`/api/prompts/${slug}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'プロンプトの削除に失敗しました');
+      }
+
+      router.push('/profile');
+    } catch (error) {
+      console.error('Prompt deletion error:', error);
+      setError(error instanceof Error ? error.message : 'プロンプトの削除に失敗しました');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (authLoading || isLoadingData) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">読み込み中...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error && !isLoadingData) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="text-red-600 mb-4">
+            <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">エラーが発生しました</h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button
+            onClick={() => router.push('/profile')}
+            className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700"
+          >
+            プロフィールに戻る
+          </button>
         </div>
       </div>
     );
@@ -178,10 +275,10 @@ export default function PromptCreatePage() {
         <div className="bg-white shadow sm:rounded-lg">
           <div className="px-4 py-5 sm:p-6">
             <h1 className="text-2xl font-bold text-gray-900 mb-6">
-              プロンプトを登録
+              プロンプトを編集
             </h1>
             <p className="text-sm text-gray-600 mb-6">
-              新しいプロンプトを登録して販売を開始しましょう。
+              プロンプトの情報を編集できます。
             </p>
 
             {error && (
@@ -350,21 +447,32 @@ export default function PromptCreatePage() {
                 </p>
               </div>
 
-              <div className="flex justify-end space-x-3">
+              <div className="flex justify-between">
                 <button
                   type="button"
-                  onClick={() => router.back()}
-                  className="bg-gray-300 text-gray-700 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-                >
-                  キャンセル
-                </button>
-                <button
-                  type="submit"
+                  onClick={handleDelete}
                   disabled={isLoading}
-                  className="bg-blue-600 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                  className="bg-red-600 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
                 >
-                  {isLoading ? '登録中...' : 'プロンプトを登録'}
+                  {isLoading ? '削除中...' : 'プロンプトを削除'}
                 </button>
+
+                <div className="flex space-x-3">
+                  <button
+                    type="button"
+                    onClick={() => router.back()}
+                    className="bg-gray-300 text-gray-700 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                  >
+                    キャンセル
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="bg-blue-600 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                  >
+                    {isLoading ? '更新中...' : 'プロンプトを更新'}
+                  </button>
+                </div>
               </div>
             </form>
           </div>
