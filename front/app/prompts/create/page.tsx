@@ -18,6 +18,7 @@ export default function PromptCreatePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const [categories, setCategories] = useState<Array<{id: number, name: string}>>([]);
+  const [validationErrors, setValidationErrors] = useState<{[key: string]: string}>({});
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -41,6 +42,60 @@ export default function PromptCreatePage() {
     fetchCategories();
   }, [user, authLoading, router]);
 
+  const validateForm = () => {
+    const errors: {[key: string]: string} = {};
+
+    if (!formData.title.trim()) {
+      errors.title = 'タイトルは必須です';
+    } else if (formData.title.length > 100) {
+      errors.title = 'タイトルは100文字以内で入力してください';
+    }
+
+    if (!formData.description.trim()) {
+      errors.description = '説明は必須です';
+    } else if (formData.description.length > 200) {
+      errors.description = '説明は200文字以内で入力してください';
+    }
+
+    if (!formData.content.trim()) {
+      errors.content = 'プロンプト内容は必須です';
+    } else if (formData.content.length > 2000) {
+      errors.content = 'プロンプト内容は2000文字以内で入力してください';
+    }
+
+    if (!formData.category_id) {
+      errors.category_id = 'カテゴリを選択してください';
+    }
+
+    if (!formData.price) {
+      errors.price = '価格は必須です';
+    } else {
+      const price = parseFloat(formData.price);
+      if (isNaN(price) || price < 0) {
+        errors.price = '価格は0以上の数値を入力してください';
+      } else if (price > 100000) {
+        errors.price = '価格は100,000円以内で設定してください';
+      }
+    }
+
+    // タグのバリデーション
+    if (formData.tags.trim()) {
+      const tags = formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag);
+      if (tags.length > 10) {
+        errors.tags = 'タグは10個以内で設定してください';
+      }
+      for (const tag of tags) {
+        if (tag.length > 50) {
+          errors.tags = '各タグは50文字以内で入力してください';
+          break;
+        }
+      }
+    }
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     
@@ -48,10 +103,23 @@ export default function PromptCreatePage() {
       ...prev,
       [name]: value
     }));
+
+    // リアルタイムバリデーション
+    if (validationErrors[name]) {
+      setValidationErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+
     setIsLoading(true);
     setError('');
 
@@ -61,9 +129,9 @@ export default function PromptCreatePage() {
       }
 
       const promptData = {
-        title: formData.title,
-        description: formData.description,
-        content: formData.content,
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        content: formData.content.trim(),
         category_id: parseInt(formData.category_id),
         price: parseFloat(formData.price),
         tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag),
@@ -144,9 +212,14 @@ export default function PromptCreatePage() {
                     required
                     value={formData.title}
                     onChange={handleInputChange}
-                    className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md text-gray-900"
+                    className={`shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md text-gray-900 ${
+                      validationErrors.title ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : ''
+                    }`}
                     placeholder="プロンプトのタイトルを入力してください"
                   />
+                  {validationErrors.title && (
+                    <p className="mt-1 text-sm text-red-600">{validationErrors.title}</p>
+                  )}
                 </div>
               </div>
 
@@ -162,9 +235,14 @@ export default function PromptCreatePage() {
                     required
                     value={formData.description}
                     onChange={handleInputChange}
-                    className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md text-gray-900"
+                    className={`shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md text-gray-900 ${
+                      validationErrors.description ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : ''
+                    }`}
                     placeholder="プロンプトの説明を入力してください"
                   />
+                  {validationErrors.description && (
+                    <p className="mt-1 text-sm text-red-600">{validationErrors.description}</p>
+                  )}
                 </div>
               </div>
 
@@ -180,9 +258,14 @@ export default function PromptCreatePage() {
                     required
                     value={formData.content}
                     onChange={handleInputChange}
-                    className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md text-gray-900 font-mono"
+                    className={`shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md text-gray-900 font-mono ${
+                      validationErrors.content ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : ''
+                    }`}
                     placeholder="プロンプトの内容を入力してください"
                   />
+                  {validationErrors.content && (
+                    <p className="mt-1 text-sm text-red-600">{validationErrors.content}</p>
+                  )}
                 </div>
               </div>
 
@@ -198,7 +281,9 @@ export default function PromptCreatePage() {
                       required
                       value={formData.category_id}
                       onChange={handleInputChange}
-                      className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md text-gray-900"
+                      className={`shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md text-gray-900 ${
+                        validationErrors.category_id ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : ''
+                      }`}
                     >
                       <option value="">カテゴリを選択してください</option>
                       {categories.map((category) => (
@@ -207,6 +292,9 @@ export default function PromptCreatePage() {
                         </option>
                       ))}
                     </select>
+                    {validationErrors.category_id && (
+                      <p className="mt-1 text-sm text-red-600">{validationErrors.category_id}</p>
+                    )}
                   </div>
                 </div>
 
@@ -220,13 +308,19 @@ export default function PromptCreatePage() {
                       name="price"
                       id="price"
                       min="0"
+                      max="100000"
                       step="100"
                       required
                       value={formData.price}
                       onChange={handleInputChange}
-                      className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md text-gray-900"
+                      className={`shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md text-gray-900 ${
+                        validationErrors.price ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : ''
+                      }`}
                       placeholder="1000"
                     />
+                    {validationErrors.price && (
+                      <p className="mt-1 text-sm text-red-600">{validationErrors.price}</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -242,12 +336,17 @@ export default function PromptCreatePage() {
                     id="tags"
                     value={formData.tags}
                     onChange={handleInputChange}
-                    className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md text-gray-900"
+                    className={`shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md text-gray-900 ${
+                      validationErrors.tags ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : ''
+                    }`}
                     placeholder="タグ1, タグ2, タグ3（カンマ区切り）"
                   />
+                  {validationErrors.tags && (
+                    <p className="mt-1 text-sm text-red-600">{validationErrors.tags}</p>
+                  )}
                 </div>
                 <p className="mt-1 text-sm text-gray-500">
-                  複数のタグはカンマで区切って入力してください
+                  複数のタグはカンマで区切って入力してください（最大10個）
                 </p>
               </div>
 

@@ -16,10 +16,10 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, description, content, category_id, price, tags, seller_id } = body;
+    const { title, description, content, category_id, price, tags } = body;
 
     // バリデーション
-    if (!title || !description || !content || !category_id || !price) {
+    if (!title || !description || !content || !category_id || price === undefined || price === null) {
       return NextResponse.json(
         { message: '必須フィールドが不足しています' },
         { status: 400 }
@@ -41,20 +41,19 @@ export async function POST(request: NextRequest) {
       .replace(/-+/g, '-')
       .trim('-');
 
-    // プロンプトを作成
+    // プロンプトを作成（データベース構造に合わせて修正）
     const { data: prompt, error: promptError } = await supabase
       .from('prompts')
       .insert({
         title,
-        description,
-        content,
+        short_description: description,
+        long_description: content,
         category_id: parseInt(category_id),
-        price: parseFloat(price),
+        price_jpy: parseInt(price),
         seller_id: user.id,
         slug: `${slug}-${Date.now()}`,
-        status: 'active',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        status: 'published',
+        visibility: 'public'
       })
       .select()
       .single();
@@ -62,26 +61,70 @@ export async function POST(request: NextRequest) {
     if (promptError) {
       console.error('Prompt creation error:', promptError);
       return NextResponse.json(
-        { message: 'プロンプトの作成に失敗しました' },
+        { message: 'プロンプトの作成に失敗しました', details: promptError.message },
         { status: 500 }
       );
     }
 
-    // タグを追加（タグが提供されている場合）
+    // タグを追加（tagsテーブルとprompt_tagsテーブルを使用）
     if (tags && tags.length > 0) {
-      const tagInserts = tags.map((tag: string) => ({
-        prompt_id: prompt.id,
-        name: tag.trim(),
-        created_at: new Date().toISOString()
-      }));
+      try {
+        // 各タグをtagsテーブルに追加（存在しない場合のみ）
+        const tagPromises = tags.map(async (tagName: string) => {
+          const trimmedTag = tagName.trim();
+          if (!trimmedTag) return null;
 
-      const { error: tagError } = await supabase
-        .from('prompt_tags')
-        .insert(tagInserts);
+          // タグが既に存在するかチェック
+          const { data: existingTag } = await supabase
+            .from('tags')
+            .select('id')
+            .eq('name', trimmedTag)
+            .single();
 
-      if (tagError) {
-        console.error('Tag creation error:', tagError);
-        // タグの作成に失敗してもプロンプトは作成済みなので、警告のみ
+          if (existingTag) {
+            return existingTag.id;
+          }
+
+          // 新しいタグを作成
+          const { data: newTag, error: tagError } = await supabase
+            .from('tags')
+            .insert({
+              name: trimmedTag,
+              slug: trimmedTag.toLowerCase().replace(/[^a-z0-9-]/g, '-')
+            })
+            .select('id')
+            .single();
+
+          if (tagError) {
+            console.error('Tag creation error:', tagError);
+            return null;
+          }
+
+          return newTag.id;
+        });
+
+        const tagIds = await Promise.all(tagPromises);
+        const validTagIds = tagIds.filter(id => id !== null);
+
+        // prompt_tagsテーブルに関連付けを追加
+        if (validTagIds.length > 0) {
+          const promptTagInserts = validTagIds.map(tagId => ({
+            prompt_id: prompt.id,
+            tag_id: tagId
+          }));
+
+          const { error: promptTagError } = await supabase
+            .from('prompt_tags')
+            .insert(promptTagInserts);
+
+          if (promptTagError) {
+            console.error('Prompt tag association error:', promptTagError);
+            // タグの関連付けに失敗してもプロンプトは作成済みなので、警告のみ
+          }
+        }
+      } catch (tagError) {
+        console.error('Tag processing error:', tagError);
+        // タグ処理に失敗してもプロンプトは作成済みなので、警告のみ
       }
     }
 
@@ -93,7 +136,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('API error:', error);
     return NextResponse.json(
-      { message: 'サーバーエラーが発生しました' },
+      { message: 'サーバーエラーが発生しました', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

@@ -3,11 +3,11 @@ import { createClient } from '@/lib/supabase-server';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
     const supabase = await createClient();
-    const { slug } = params;
+    const { slug } = await params;
 
     // プロンプト詳細を取得（カテゴリと出品者情報を含む）
     const { data: prompt, error } = await supabase
