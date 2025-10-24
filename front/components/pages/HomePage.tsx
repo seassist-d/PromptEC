@@ -10,9 +10,32 @@ interface Category {
   slug: string;
 }
 
+interface Prompt {
+  id: string;
+  title: string;
+  slug: string;
+  seller_id: string;
+  category_id: number;
+  thumbnail_url?: string;
+  price_jpy: number;
+  short_description: string;
+  avg_rating: number;
+  ratings_count: number;
+  view_count: number;
+  like_count: number;
+  created_at: string;
+  categories: {
+    id: number;
+    name: string;
+    slug: string;
+  };
+}
+
 export default function HomePage() {
   const [categories, setCategories] = useState<Category[]>([]);
+  const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingPrompts, setLoadingPrompts] = useState(true);
   const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
@@ -30,7 +53,22 @@ export default function HomePage() {
       }
     };
 
+    const fetchPopularPrompts = async () => {
+      try {
+        const response = await fetch('/api/prompts/popular');
+        if (response.ok) {
+          const data = await response.json();
+          setPrompts(data.prompts || []);
+        }
+      } catch (error) {
+        console.error('Error fetching popular prompts:', error);
+      } finally {
+        setLoadingPrompts(false);
+      }
+    };
+
     fetchCategories();
+    fetchPopularPrompts();
   }, []);
 
   const categoryIcons: { [key: string]: string } = {
@@ -115,35 +153,91 @@ export default function HomePage() {
             人気のプロンプト
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {/* プロンプトカード（サンプル） */}
-            {[1, 2, 3, 4, 5, 6].map((item) => (
-              <div key={item} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-                <div className="h-48 bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
-                  <span className="text-white text-2xl font-bold">サンプル画像</span>
-                </div>
-                <div className="p-6">
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                    プロンプトタイトル {item}
-                  </h3>
-                  <p className="text-gray-600 mb-4">
-                    このプロンプトは高品質なAI生成を可能にします。詳細な説明がここに表示されます。
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <div className="flex text-yellow-400">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <svg key={star} className="w-5 h-5 fill-current" viewBox="0 0 20 20">
-                            <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
-                          </svg>
-                        ))}
+            {loadingPrompts ? (
+              // ローディング状態
+              Array.from({ length: 6 }).map((_, index) => (
+                <div key={index} className="bg-white rounded-lg shadow-md overflow-hidden animate-pulse">
+                  <div className="h-48 bg-gray-200"></div>
+                  <div className="p-6">
+                    <div className="h-6 bg-gray-200 rounded mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded mb-4"></div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <div className="flex space-x-1">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <div key={star} className="w-5 h-5 bg-gray-200 rounded"></div>
+                          ))}
+                        </div>
+                        <div className="ml-2 h-4 w-16 bg-gray-200 rounded"></div>
                       </div>
-                      <span className="ml-2 text-sm text-gray-600">4.8 (123)</span>
+                      <div className="h-6 w-20 bg-gray-200 rounded"></div>
                     </div>
-                    <span className="text-2xl font-bold text-blue-600">¥1,200</span>
                   </div>
                 </div>
+              ))
+            ) : prompts.length === 0 ? (
+              // プロンプトがない場合
+              <div className="col-span-full text-center py-12">
+                <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <h3 className="mt-2 text-sm font-medium text-gray-900">人気プロンプトがありません</h3>
+                <p className="mt-1 text-sm text-gray-500">評価されたプロンプトが表示されます。</p>
               </div>
-            ))}
+            ) : (
+              // 実際のプロンプトデータ
+              prompts.map((prompt) => (
+                <Link
+                  key={prompt.id}
+                  href={`/prompts/${prompt.slug}`}
+                  className="block bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
+                >
+                  <div className="h-48 bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
+                    {prompt.thumbnail_url ? (
+                      <img 
+                        src={prompt.thumbnail_url} 
+                        alt={prompt.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-white text-2xl font-bold">📝</span>
+                    )}
+                  </div>
+                  <div className="p-6">
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2 line-clamp-2">
+                      {prompt.title}
+                    </h3>
+                    <p className="text-gray-600 mb-4 line-clamp-3">
+                      {prompt.short_description}
+                    </p>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <div className="flex text-yellow-400">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <svg 
+                              key={star} 
+                              className={`w-5 h-5 ${star <= Math.round(prompt.avg_rating) ? 'fill-current' : 'text-gray-300'}`} 
+                              viewBox="0 0 20 20"
+                            >
+                              <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
+                            </svg>
+                          ))}
+                        </div>
+                        <span className="ml-2 text-sm text-gray-600">
+                          {prompt.avg_rating.toFixed(1)} ({prompt.ratings_count})
+                        </span>
+                      </div>
+                      <span className="text-2xl font-bold text-blue-600">¥{prompt.price_jpy.toLocaleString()}</span>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between text-sm text-gray-500">
+                      <span>👀 {prompt.view_count}</span>
+                      <span>❤️ {prompt.like_count}</span>
+                      <span>{prompt.categories.name}</span>
+                    </div>
+                  </div>
+                </Link>
+              ))
+            )}
           </div>
           <div className="text-center mt-8">
             <Link
