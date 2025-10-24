@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import type { User } from '@supabase/supabase-js';
 
 // Server Action用のSupabaseクライアント
 // サーバーサイドで使用するため、環境変数から直接取得
@@ -24,21 +25,10 @@ export const supabaseServer = createClient(
   }
 );
 
-// 新規登録用の型定義（メールアドレスのみ）
-export interface RegisterData {
-  email: string;
-}
-
-export interface RegisterResult {
-  success: boolean;
-  message: string;
-  user?: any;
-  error?: string;
-}
-
+// ログイン用の型定義
 export interface LoginResult {
   success: boolean;
   message: string;
-  user?: any;
+  user?: User;
   error?: string;
 }

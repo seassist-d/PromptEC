@@ -204,7 +204,7 @@ export default function ProfileEditForm({ user, onSuccess, onCancel }: ProfileEd
             className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500 ${
               fieldErrors.display_name ? 'border-red-300 bg-red-50' : 'border-gray-300 bg-white'
             }`}
-            placeholder="表示名を入力してください"
+            placeholder="名前を入力してください"
           />
           {fieldErrors.display_name && (
             <p className="mt-1 text-sm text-red-600">{fieldErrors.display_name}</p>

@@ -20,7 +20,7 @@ export async function getProfileFromAuth(): Promise<{ success: boolean; user?: U
       email: authUser.email || '',
       display_name: authUser.user_metadata?.display_name || authUser.email?.split('@')[0] || 'ユーザー',
       avatar_url: authUser.user_metadata?.avatar_url || null,
-      bio: null,
+      bio: undefined,
       contact: {},
       role: 'user',
       is_banned: false,
