@@ -3,11 +3,36 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/useAuth';
+import { getProfileClient } from '@/lib/profile-client';
+import type { User } from '@/types/auth';
 
 export default function Header() {
   const { user, loading, signOut } = useAuth();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [profileUser, setProfileUser] = useState<User | null>(null);
+  const [profileLoading, setProfileLoading] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // プロフィール情報を取得
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (user && !profileLoading) {
+        setProfileLoading(true);
+        try {
+          const result = await getProfileClient();
+          if (result.success && result.user) {
+            setProfileUser(result.user);
+          }
+        } catch (error) {
+          console.error('Failed to fetch profile:', error);
+        } finally {
+          setProfileLoading(false);
+        }
+      }
+    };
+
+    fetchProfile();
+  }, [user]);
 
   // ドロップダウン外クリックで閉じる
   useEffect(() => {
@@ -22,19 +47,34 @@ export default function Header() {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+
+  // 表示名を決定する関数
+  const getDisplayName = () => {
+    if (profileUser?.display_name) {
+      return profileUser.display_name;
+    }
+    if (user?.user_metadata?.display_name) {
+      return user.user_metadata.display_name;
+    }
+    if (user?.email) {
+      return user.email.split('@')[0];
+    }
+    return 'ユーザー';
+  };
+
   return (
     <header className="bg-white shadow-sm border-b">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="w-full px-1 sm:px-2 lg:px-3">
         <div className="flex justify-between items-center h-16">
           {/* ロゴ */}
-          <div className="flex-shrink-0">
+          <div className="flex-shrink-0 ml-4">
             <Link href="/" className="flex items-center">
               <span className="text-2xl font-bold text-blue-600">PromptEC</span>
             </Link>
           </div>
           
           {/* 中央: 検索バー */}
-          <div className="flex-1 max-w-lg mx-8">
+          <div className="flex-1 max-w-lg mx-2">
             <form action="/search" method="GET" className="relative">
               <input
                 type="text"
@@ -58,11 +98,11 @@ export default function Header() {
             <Link href="/" className="text-gray-500 hover:text-gray-900 px-3 py-2 text-sm font-medium">
               ホーム
             </Link>
-            <Link href="/search" className="text-gray-500 hover:text-gray-900 px-3 py-2 text-sm font-medium">
-              プロンプト検索
+            <Link href="/prompts/create" className="text-gray-500 hover:text-gray-900 px-3 py-2 text-sm font-medium">
+              プロンプトを登録
             </Link>
             
-            {loading ? (
+            {loading || profileLoading ? (
               // ローディング中
               <div className="animate-pulse">
                 <div className="h-4 w-20 bg-gray-200 rounded"></div>
@@ -76,9 +116,9 @@ export default function Header() {
                 >
                   {/* ユーザーアバター */}
                   <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                    {user.user_metadata?.avatar_url ? (
+                    {(profileUser?.avatar_url || user.user_metadata?.avatar_url) ? (
                       <img 
-                        src={user.user_metadata.avatar_url} 
+                        src={profileUser?.avatar_url || user.user_metadata?.avatar_url} 
                         alt="アバター" 
                         className="w-full h-full object-cover"
                       />
@@ -88,7 +128,7 @@ export default function Header() {
                       </svg>
                     )}
                   </div>
-                  <span>{user.user_metadata?.display_name || user.email?.split('@')[0] || 'ユーザー'}</span>
+                  <span>{getDisplayName()}</span>
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
