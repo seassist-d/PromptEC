@@ -1,9 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import SocialLoginButtons from '@/components/auth/SocialLoginButtons';
+import EmailAuthForm from '@/components/auth/EmailAuthForm';
 
 export default function RegisterPage() {
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState<string>('');
@@ -20,6 +23,10 @@ export default function RegisterPage() {
   const handleError = (message: string) => {
     setErrorMessage(message);
     setSuccessMessage('');
+  };
+
+  const handleNavigateToLogin = () => {
+    router.push('/auth/login');
   };
 
   if (!mounted) {
@@ -86,9 +93,27 @@ export default function RegisterPage() {
           </div>
         )}
 
-        {/* ソーシャルログインボタンのみ */}
+        {/* 認証フォーム */}
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+          {/* ソーシャルログイン */}
           <SocialLoginButtons onSuccess={handleSuccess} onError={handleError} />
+          
+          {/* 区切り線 */}
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white text-gray-500">または</span>
+            </div>
+          </div>
+
+          {/* メール認証フォーム */}
+          <EmailAuthForm 
+            onSuccess={handleSuccess} 
+            onError={handleError}
+            onNavigateToLogin={handleNavigateToLogin}
+          />
         </div>
 
         {/* ログインリンク */}
