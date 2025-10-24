@@ -21,8 +21,10 @@ export default function AuthCallbackPage() {
         const error = urlParams.get('error');
         const errorDescription = urlParams.get('error_description');
         const source = urlParams.get('source'); // 認証の出発点（register/login）
+        const code = urlParams.get('code'); // メール認証用のcode
         
         console.log('Auth source:', source);
+        console.log('Code:', code);
         console.log('Source type check:', typeof source);
         console.log('Source === "register":', source === 'register');
         console.log('Source !== "register":', source !== 'register');
@@ -52,6 +54,23 @@ export default function AuthCallbackPage() {
         if (finalError) {
           console.error('Auth callback error:', finalError, finalErrorDescription);
           router.push(`/auth/login?error=${encodeURIComponent(finalErrorDescription || '認証に失敗しました')}`);
+          return;
+        }
+        
+        // メール認証のcode処理（直接リダイレクト版）
+        if (code) {
+          console.log('=== EMAIL AUTH CODE PROCESSING ===');
+          console.log('Processing code:', code);
+          console.log('User is already confirmed in Supabase, redirecting directly...');
+          
+          // ユーザーは既にSupabaseで認証されているので、直接プロフィール設定へ
+          if (source === 'register') {
+            console.log('Redirecting to profile setup (new user)');
+            router.push('/profile/setup');
+          } else {
+            console.log('Redirecting to top page (existing user)');
+            router.push('/');
+          }
           return;
         }
         
