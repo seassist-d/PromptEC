@@ -10,12 +10,7 @@ export default function ProfileSetupPage() {
   const { user, loading: authLoading } = useAuth();
   const [formData, setFormData] = useState({
     display_name: '',
-    bio: '',
-    contact: {
-      website: '',
-      twitter: '',
-      github: ''
-    }
+    bio: ''
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>('');
@@ -30,7 +25,7 @@ export default function ProfileSetupPage() {
       // 既存のプロファイル情報を取得
       setFormData(prev => ({
         ...prev,
-        display_name: user.user_metadata?.display_name || user.email?.split('@')[0] || ''
+        display_name: user.user_metadata?.display_name || ''
       }));
     }
   }, [user, authLoading, router]);
@@ -38,21 +33,10 @@ export default function ProfileSetupPage() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     
-    if (name.startsWith('contact.')) {
-      const contactField = name.split('.')[1];
-      setFormData(prev => ({
-        ...prev,
-        contact: {
-          ...prev.contact,
-          [contactField]: value
-        }
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }));
-    }
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -60,23 +44,53 @@ export default function ProfileSetupPage() {
     setIsLoading(true);
     setError('');
 
+    console.log('Form data:', formData);
+    console.log('User:', user);
+    console.log('Supabase client:', supabase);
+
     try {
       if (!user) {
         throw new Error('ユーザー情報が見つかりません');
       }
 
+      // Supabaseの認証状態を確認
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+      console.log('Auth user:', authUser);
+      console.log('Auth error:', authError);
+
+      if (authError || !authUser) {
+        throw new Error(`認証エラー: ${authError?.message || 'ユーザー情報が取得できません'}`);
+      }
+
       // プロファイルを更新
-      const { error: updateError } = await supabase
+      console.log('Attempting to upsert profile with data:', {
+        user_id: user.id,
+        display_name: formData.display_name,
+        bio: formData.bio || null,
+        contact: {},
+        updated_at: new Date().toISOString()
+      });
+
+      const { data: upsertData, error: updateError } = await supabase
         .from('user_profiles')
         .upsert({
           user_id: user.id,
           display_name: formData.display_name,
           bio: formData.bio || null,
-          contact: formData.contact,
+          contact: {},
           updated_at: new Date().toISOString()
-        });
+        })
+        .select();
+
+      console.log('Upsert result:', { upsertData, updateError });
 
       if (updateError) {
+        console.error('Update error details:', {
+          message: updateError.message,
+          details: updateError.details,
+          hint: updateError.hint,
+          code: updateError.code
+        });
         throw updateError;
       }
 
@@ -84,7 +98,25 @@ export default function ProfileSetupPage() {
       router.push('/');
     } catch (error) {
       console.error('Profile setup error:', error);
-      setError('プロフィールの設定に失敗しました。もう一度お試しください。');
+      console.error('Error type:', typeof error);
+      console.error('Error constructor:', error?.constructor?.name);
+      console.error('Error stringified:', JSON.stringify(error, null, 2));
+      
+      // より詳細なエラー情報を表示
+      let errorMessage = 'プロフィールの設定に失敗しました。もう一度お試しください。';
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (error && typeof error === 'object') {
+        // Supabaseエラーの場合
+        if ('message' in error) {
+          errorMessage = (error as { message: string }).message;
+        } else if ('details' in error) {
+          errorMessage = (error as { details: string }).details || errorMessage;
+        }
+      }
+      
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -102,7 +134,7 @@ export default function ProfileSetupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-2xl mx-auto">
         <div className="bg-white shadow sm:rounded-lg">
           <div className="px-4 py-5 sm:p-6">
@@ -141,8 +173,8 @@ export default function ProfileSetupPage() {
                     required
                     value={formData.display_name}
                     onChange={handleInputChange}
-                    className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                    placeholder="表示名を入力してください"
+                    className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md text-gray-900"
+                    placeholder="名前を入力してください"
                   />
                 </div>
               </div>
@@ -158,77 +190,14 @@ export default function ProfileSetupPage() {
                     rows={4}
                     value={formData.bio}
                     onChange={handleInputChange}
-                    className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                    className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md text-gray-900"
                     placeholder="自己紹介を入力してください（任意）"
                   />
                 </div>
               </div>
 
-              <div className="border-t pt-6">
-                <h4 className="text-md font-medium text-gray-900 mb-4">連絡先情報（任意）</h4>
-                
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                  <div>
-                    <label htmlFor="contact.website" className="block text-sm font-medium text-gray-700">
-                      ウェブサイト
-                    </label>
-                    <div className="mt-1">
-                      <input
-                        type="url"
-                        name="contact.website"
-                        id="contact.website"
-                        value={formData.contact.website}
-                        onChange={handleInputChange}
-                        className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                        placeholder="https://example.com"
-                      />
-                    </div>
-                  </div>
 
-                  <div>
-                    <label htmlFor="contact.twitter" className="block text-sm font-medium text-gray-700">
-                      Twitter
-                    </label>
-                    <div className="mt-1">
-                      <input
-                        type="text"
-                        name="contact.twitter"
-                        id="contact.twitter"
-                        value={formData.contact.twitter}
-                        onChange={handleInputChange}
-                        className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                        placeholder="@username"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label htmlFor="contact.github" className="block text-sm font-medium text-gray-700">
-                      GitHub
-                    </label>
-                    <div className="mt-1">
-                      <input
-                        type="text"
-                        name="contact.github"
-                        id="contact.github"
-                        value={formData.contact.github}
-                        onChange={handleInputChange}
-                        className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                        placeholder="username"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex justify-end space-x-3">
-                <button
-                  type="button"
-                  onClick={() => router.push('/')}
-                  className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  スキップ
-                </button>
+              <div className="flex justify-end">
                 <button
                   type="submit"
                   disabled={isLoading}
