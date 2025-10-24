@@ -21,6 +21,8 @@ export interface Prompt {
   slug: string;
   seller_id: string;
   category_id: number;
+  category_name: string;
+  category_slug: string;
   thumbnail_url: string | null;
   price_jpy: number;
   short_description: string | null;

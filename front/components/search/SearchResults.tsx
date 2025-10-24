@@ -181,6 +181,13 @@ export default function SearchResults({
                 )}
               </div>
 
+              {/* カテゴリ */}
+              <div className="mb-3">
+                <span className="inline-block bg-blue-100 text-blue-800 text-xs font-semibold px-2 py-1 rounded-full">
+                  {prompt.category_name}
+                </span>
+              </div>
+
               {/* タイトル */}
               <h3 className="text-lg font-bold text-gray-900 mb-3 line-clamp-2">
                 {prompt.title}

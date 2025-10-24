@@ -17,17 +17,69 @@ export async function GET(request: NextRequest) {
     
     const supabase = await createClient();
     
-    // データベースのsearch_prompts関数を使用
-    const { data, error } = await supabase.rpc('search_prompts', {
-      search_query: query,
-      category_filter: category ? parseInt(category) : null,
-      min_price: minPrice ? parseInt(minPrice) : null,
-      max_price: maxPrice ? parseInt(maxPrice) : null,
-      sort_by: sortBy,
-      sort_order: sortOrder,
-      limit_count: limit,
-      offset_count: (page - 1) * limit,
-    });
+    // プロンプトとカテゴリ情報を一緒に取得
+    let supabaseQuery = supabase
+      .from('prompts')
+      .select(`
+        id,
+        title,
+        slug,
+        seller_id,
+        category_id,
+        thumbnail_url,
+        price_jpy,
+        short_description,
+        avg_rating,
+        ratings_count,
+        view_count,
+        created_at,
+        categories!inner(id, name, slug)
+      `)
+      .eq('status', 'published')
+      .eq('visibility', 'public');
+
+    // 検索クエリの適用
+    if (query) {
+      supabaseQuery = supabaseQuery.or(
+        `title.ilike.%${query}%,short_description.ilike.%${query}%,long_description.ilike.%${query}%`
+      );
+    }
+
+    // カテゴリフィルター
+    if (category) {
+      supabaseQuery = supabaseQuery.eq('category_id', parseInt(category));
+    }
+
+    // 価格フィルター
+    if (minPrice) {
+      supabaseQuery = supabaseQuery.gte('price_jpy', parseInt(minPrice));
+    }
+    if (maxPrice) {
+      supabaseQuery = supabaseQuery.lte('price_jpy', parseInt(maxPrice));
+    }
+
+    // ソート
+    switch (sortBy) {
+      case 'price':
+        supabaseQuery = supabaseQuery.order('price_jpy', { ascending: sortOrder === 'ASC' });
+        break;
+      case 'rating':
+        supabaseQuery = supabaseQuery.order('avg_rating', { ascending: sortOrder === 'ASC' });
+        break;
+      case 'views':
+        supabaseQuery = supabaseQuery.order('view_count', { ascending: sortOrder === 'ASC' });
+        break;
+      default:
+        supabaseQuery = supabaseQuery.order('created_at', { ascending: sortOrder === 'ASC' });
+    }
+
+    // ページネーション
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+    supabaseQuery = supabaseQuery.range(from, to);
+
+    // 検索実行
+    const { data, error } = await supabaseQuery;
 
     if (error) {
       console.error('Search error:', error);
@@ -65,8 +117,27 @@ export async function GET(request: NextRequest) {
       console.error('Count error:', countError);
     }
 
+    // レスポンス形式を統一（カテゴリ情報を含む）
+    const formattedResults = (data || []).map(prompt => ({
+      id: prompt.id,
+      title: prompt.title,
+      slug: prompt.slug,
+      seller_id: prompt.seller_id,
+      category_id: prompt.category_id,
+      category_name: prompt.categories?.name || '未分類',
+      category_slug: prompt.categories?.slug || '',
+      thumbnail_url: prompt.thumbnail_url,
+      price_jpy: prompt.price_jpy,
+      short_description: prompt.short_description,
+      avg_rating: prompt.avg_rating,
+      ratings_count: prompt.ratings_count || 0,
+      view_count: prompt.view_count || 0,
+      created_at: prompt.created_at,
+      rank: 0 // 基本検索ではランクは0
+    }));
+
     return NextResponse.json({
-      prompts: data || [],
+      prompts: formattedResults,
       totalCount: count || 0,
       page,
       limit,
