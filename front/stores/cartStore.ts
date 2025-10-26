@@ -195,8 +195,3 @@ export const useCartStore = create<CartState>()(
     }
   )
 );
-
-// Initialize cart on store creation
-if (typeof window !== 'undefined') {
-  useCartStore.getState().loadCart();
-}

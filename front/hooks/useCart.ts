@@ -25,7 +25,9 @@ export function useCart() {
     if (user !== undefined) { // undefined = まだ認証状態を確認中
       loadCart();
     }
-  }, [user, loadCart]);
+    // loadCart は依存配列から除外（関数の参照が変わっても再実行しない）
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   // カートにプロンプトを追加
   const addToCart = async (promptId: string, promptData: {

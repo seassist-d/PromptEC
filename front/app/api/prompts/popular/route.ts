@@ -6,6 +6,7 @@ export async function GET(request: NextRequest) {
     const supabase = await createClient();
     
     // 人気プロンプトを評価順で取得（評価が高い順、評価数が多い順）
+    // categories のリレーションを LEFT JOIN に変更して、カテゴリがなくてもプロンプトを取得できるようにする
     const { data: prompts, error } = await supabase
       .from('prompts')
       .select(`
@@ -22,14 +23,11 @@ export async function GET(request: NextRequest) {
         view_count,
         like_count,
         created_at,
-        categories!inner(id, name, slug)
+        categories(id, name, slug)
       `)
       .eq('status', 'published')
       .eq('visibility', 'public')
-      .not('avg_rating', 'is', null)
-      .gte('ratings_count', 1)
-      .order('avg_rating', { ascending: false })
-      .order('ratings_count', { ascending: false })
+      .order('created_at', { ascending: false })
       .limit(6);
 
     if (error) {

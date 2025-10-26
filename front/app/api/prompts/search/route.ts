@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
         ratings_count,
         view_count,
         created_at,
-        categories!inner(id, name, slug)
+        categories(id, name, slug)
       `)
       .eq('status', 'published')
       .eq('visibility', 'public');
@@ -118,23 +118,30 @@ export async function GET(request: NextRequest) {
     }
 
     // レスポンス形式を統一（カテゴリ情報を含む）
-    const formattedResults = (data || []).map(prompt => ({
-      id: prompt.id,
-      title: prompt.title,
-      slug: prompt.slug,
-      seller_id: prompt.seller_id,
-      category_id: prompt.category_id,
-      category_name: prompt.categories?.name || '未分類',
-      category_slug: prompt.categories?.slug || '',
-      thumbnail_url: prompt.thumbnail_url,
-      price_jpy: prompt.price_jpy,
-      short_description: prompt.short_description,
-      avg_rating: prompt.avg_rating,
-      ratings_count: prompt.ratings_count || 0,
-      view_count: prompt.view_count || 0,
-      created_at: prompt.created_at,
-      rank: 0 // 基本検索ではランクは0
-    }));
+    const formattedResults = (data || []).map(prompt => {
+      // categories が配列の場合は最初の要素を取得、そうでなければそのまま使用
+      const category = Array.isArray(prompt.categories) 
+        ? prompt.categories[0] 
+        : prompt.categories;
+      
+      return {
+        id: prompt.id,
+        title: prompt.title,
+        slug: prompt.slug,
+        seller_id: prompt.seller_id,
+        category_id: prompt.category_id,
+        category_name: category?.name || '未分類',
+        category_slug: category?.slug || '',
+        thumbnail_url: prompt.thumbnail_url,
+        price_jpy: prompt.price_jpy,
+        short_description: prompt.short_description,
+        avg_rating: prompt.avg_rating,
+        ratings_count: prompt.ratings_count || 0,
+        view_count: prompt.view_count || 0,
+        created_at: prompt.created_at,
+        rank: 0 // 基本検索ではランクは0
+      };
+    });
 
     return NextResponse.json({
       prompts: formattedResults,

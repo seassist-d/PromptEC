@@ -5,7 +5,7 @@ import { cookies } from 'next/headers';
 // カート取得
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
     
     // 認証状態を確認
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -104,7 +104,7 @@ export async function GET(request: NextRequest) {
 // カートにアイテム追加
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
     const body = await request.json();
     const { promptId, quantity = 1 } = body;
 
@@ -263,7 +263,7 @@ export async function POST(request: NextRequest) {
 // カートからアイテム削除
 export async function DELETE(request: NextRequest) {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
     const { searchParams } = new URL(request.url);
     const itemId = searchParams.get('itemId');
 
@@ -299,18 +299,26 @@ export async function DELETE(request: NextRequest) {
       cartCondition = { temp_key: tempKey };
     }
 
+    // まずカートIDを取得
+    const { data: cart, error: cartError } = await supabase
+      .from('carts')
+      .select('id')
+      .match(cartCondition)
+      .single();
+
+    if (cartError) {
+      return NextResponse.json(
+        { error: 'カートが見つかりません' }, 
+        { status: 404 }
+      );
+    }
+
     // カートアイテムを削除
     const { error: deleteError } = await supabase
       .from('cart_items')
       .delete()
       .eq('id', itemId)
-      .eq('cart_id', 
-        supabase
-          .from('carts')
-          .select('id')
-          .match(cartCondition)
-          .single()
-      );
+      .eq('cart_id', cart.id);
 
     if (deleteError) throw deleteError;
 

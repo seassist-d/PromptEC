@@ -12,7 +12,9 @@ export default function CartPage() {
   // ページ読み込み時にカートを更新
   useEffect(() => {
     refreshCart();
-  }, [refreshCart]);
+    // refreshCart は依存配列から除外（関数の参照が変わっても再実行しない）
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50">

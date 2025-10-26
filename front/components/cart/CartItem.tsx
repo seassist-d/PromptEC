@@ -13,6 +13,10 @@ export default function CartItemComponent({ item, onRemove }: CartItemProps) {
   const [isRemoving, setIsRemoving] = useState(false);
 
   const handleRemove = async () => {
+    if (!confirm(`「${item.prompts.title}」をカートから削除しますか？`)) {
+      return;
+    }
+
     setIsRemoving(true);
     try {
       await onRemove(item.id);
