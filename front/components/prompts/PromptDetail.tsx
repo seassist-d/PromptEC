@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { PromptDetail as PromptDetailType } from '@/types/prompt';
 import { useAuth } from '@/lib/useAuth';
+import AddToCartButton from '../cart/AddToCartButton';
 
 interface PromptDetailProps {
   slug: string;
@@ -267,9 +268,14 @@ export default function PromptDetail({ slug }: PromptDetailProps) {
               </button>
             </div>
           ) : (
-            <button className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
-              カートに追加
-            </button>
+            <AddToCartButton 
+              promptId={prompt.id}
+              promptData={{
+                title: prompt.title,
+                price_jpy: prompt.price_jpy,
+                thumbnail_url: prompt.thumbnail_url
+              }}
+            />
           )}
 
           {/* 出品者情報 */}

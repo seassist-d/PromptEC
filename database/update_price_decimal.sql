@@ -34,3 +34,5 @@ ADD CONSTRAINT cart_items_unit_price_jpy_check CHECK (unit_price_jpy >= 0);
 ALTER TABLE public.ledger_entries 
 DROP CONSTRAINT IF EXISTS ledger_entries_price_jpy_check,
 ADD CONSTRAINT ledger_entries_price_jpy_check CHECK (price_jpy >= 0);
+
+

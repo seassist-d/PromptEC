@@ -24,11 +24,11 @@ interface Prompt {
   view_count: number;
   like_count: number;
   created_at: string;
-  categories: {
+  categories?: {
     id: number;
     name: string;
     slug: string;
-  };
+  } | null;
 }
 
 export default function HomePage() {
@@ -232,7 +232,7 @@ export default function HomePage() {
                     <div className="mt-2 flex items-center justify-between text-sm text-gray-500">
                       <span>👀 {prompt.view_count}</span>
                       <span>❤️ {prompt.like_count}</span>
-                      <span>{prompt.categories.name}</span>
+                      <span>{prompt.categories?.name || '未分類'}</span>
                     </div>
                   </div>
                 </Link>
