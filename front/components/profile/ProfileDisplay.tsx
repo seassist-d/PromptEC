@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { User } from '../../types/auth';
+import LikedPromptsList from './LikedPromptsList';
 
 interface ProfileDisplayProps {
   user: User;
@@ -277,6 +278,14 @@ export default function ProfileDisplay({ user, showEditButton = true }: ProfileD
               <div className="text-sm text-gray-500">評価平均</div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* いいねしたプロンプト一覧 */}
+      {(user.role === 'seller' || user.role === 'admin' || user.role === 'user') && (
+        <div className="bg-white rounded-lg shadow-md p-6 mt-6">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">いいねしたプロンプト</h3>
+          <LikedPromptsList />
         </div>
       )}
 
