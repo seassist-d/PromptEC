@@ -13,6 +13,8 @@ DROP FUNCTION IF EXISTS update_seller_balance();
 DROP FUNCTION IF EXISTS calculate_seller_balance(uuid);
 DROP FUNCTION IF EXISTS update_prompt_stats();
 DROP FUNCTION IF EXISTS generate_order_number();
+DROP FUNCTION IF EXISTS increment_like_count(uuid);
+DROP FUNCTION IF EXISTS decrement_like_count(uuid);
 
 -- 注文番号生成関数
 CREATE OR REPLACE FUNCTION generate_order_number()
@@ -395,5 +397,37 @@ BEGIN
         (SELECT COALESCE(SUM(total_amount_jpy), 0) FROM public.orders WHERE status = 'paid') as total_revenue,
         (SELECT COUNT(*) FROM public.reviews WHERE status = 'visible') as pending_reviews,
         (SELECT COUNT(*) FROM public.user_profiles WHERE is_banned = true) as banned_users;
+END;
+$$ LANGUAGE plpgsql;
+
+-- いいね数を増やす関数
+CREATE OR REPLACE FUNCTION increment_like_count(prompt_id uuid)
+RETURNS void AS $$
+BEGIN
+    UPDATE public.prompts
+    SET 
+        like_count = COALESCE(like_count, 0) + 1,
+        updated_at = now()
+    WHERE id = prompt_id;
+    
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'No rows updated for prompt_id: %', prompt_id;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+-- いいね数を減らす関数
+CREATE OR REPLACE FUNCTION decrement_like_count(prompt_id uuid)
+RETURNS void AS $$
+BEGIN
+    UPDATE public.prompts
+    SET 
+        like_count = GREATEST(COALESCE(like_count, 0) - 1, 0),
+        updated_at = now()
+    WHERE id = prompt_id;
+    
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'No rows updated for prompt_id: %', prompt_id;
+    END IF;
 END;
 $$ LANGUAGE plpgsql;

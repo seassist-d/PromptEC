@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/useAuth';
+import SkeletonCard from '@/components/common/SkeletonCard';
 
 interface Category {
   id: number;
@@ -122,13 +123,13 @@ export default function HomePage() {
                 <>
                   <Link
                     href="/profile"
-                    className="inline-block bg-white text-blue-600 px-8 py-3 rounded-lg text-lg font-semibold hover:bg-gray-100 transition-colors"
+                    className="inline-block bg-white text-blue-600 px-8 py-3 rounded-lg text-lg font-semibold shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-95"
                   >
                     出品プロンプトを確認
                   </Link>
                   <Link
                     href="/prompts/create"
-                    className="inline-block border-2 border-white text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors"
+                    className="inline-block border-2 border-white text-white px-8 py-3 rounded-lg text-lg font-semibold backdrop-blur-sm bg-white/10 hover:bg-white hover:text-blue-600 transition-all hover:scale-105 active:scale-95 shadow-lg"
                   >
                     プロンプトを出品
                   </Link>
@@ -136,7 +137,7 @@ export default function HomePage() {
               ) : (
                 <Link
                   href="/auth/register"
-                  className="inline-block border-2 border-white text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors"
+                  className="inline-block border-2 border-white text-white px-8 py-3 rounded-lg text-lg font-semibold backdrop-blur-sm bg-white/10 hover:bg-white hover:text-blue-600 transition-all hover:scale-105 active:scale-95 shadow-lg animate-pulse-glow"
                 >
                   無料で始める
                 </Link>
@@ -154,26 +155,9 @@ export default function HomePage() {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {loadingPrompts ? (
-              // ローディング状態
+              // ローディング状態 - スケルトンカードを使用
               Array.from({ length: 6 }).map((_, index) => (
-                <div key={index} className="bg-white rounded-lg shadow-md overflow-hidden animate-pulse">
-                  <div className="h-48 bg-gray-200"></div>
-                  <div className="p-6">
-                    <div className="h-6 bg-gray-200 rounded mb-2"></div>
-                    <div className="h-4 bg-gray-200 rounded mb-4"></div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <div className="flex space-x-1">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <div key={star} className="w-5 h-5 bg-gray-200 rounded"></div>
-                          ))}
-                        </div>
-                        <div className="ml-2 h-4 w-16 bg-gray-200 rounded"></div>
-                      </div>
-                      <div className="h-6 w-20 bg-gray-200 rounded"></div>
-                    </div>
-                  </div>
-                </div>
+                <SkeletonCard key={index} />
               ))
             ) : prompts.length === 0 ? (
               // プロンプトがない場合
@@ -190,27 +174,50 @@ export default function HomePage() {
                 <Link
                   key={prompt.id}
                   href={`/prompts/${prompt.slug}`}
-                  className="block bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
+                  className="group relative bg-white rounded-2xl shadow-lg overflow-hidden card-hover animate-slide-up border border-gray-100"
                 >
-                  <div className="h-48 bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
+                  {/* グラデーションオーバーレイ */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-blue-600/10 via-purple-600/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10"></div>
+                  
+                  {/* ホバー時のハートアイコン */}
+                  <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20">
+                    <div className="bg-white/90 backdrop-blur-sm rounded-full p-2 shadow-lg">
+                      <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                      </svg>
+                    </div>
+                  </div>
+
+                  <div className="relative h-48 bg-gradient-to-br from-blue-400 via-purple-500 to-pink-500 overflow-hidden">
                     {prompt.thumbnail_url ? (
                       <img 
                         src={prompt.thumbnail_url} 
                         alt={prompt.title}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                       />
                     ) : (
-                      <span className="text-white text-2xl font-bold">📝</span>
+                      <div className="w-full h-full flex items-center justify-center">
+                        <span className="text-white text-4xl font-bold">📝</span>
+                      </div>
                     )}
                   </div>
-                  <div className="p-6">
-                    <h3 className="text-xl font-semibold text-gray-900 mb-2 line-clamp-2">
+                  
+                  <div className="p-6 relative z-10">
+                    {/* カテゴリバッジ */}
+                    <div className="mb-3">
+                      <span className="inline-block bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800 text-xs font-semibold px-3 py-1 rounded-full border border-blue-200">
+                        {prompt.categories?.name || '未分類'}
+                      </span>
+                    </div>
+
+                    <h3 className="text-xl font-bold text-gray-900 mb-3 line-clamp-2 group-hover:text-blue-600 transition-colors">
                       {prompt.title}
                     </h3>
-                    <p className="text-gray-600 mb-4 line-clamp-3">
+                    <p className="text-gray-600 mb-4 line-clamp-3 text-sm leading-relaxed">
                       {prompt.short_description}
                     </p>
-                    <div className="flex items-center justify-between">
+                    
+                    <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center">
                         <div className="flex text-yellow-400">
                           {[1, 2, 3, 4, 5].map((star) => (
@@ -223,16 +230,20 @@ export default function HomePage() {
                             </svg>
                           ))}
                         </div>
-                        <span className="ml-2 text-sm text-gray-600">
+                        <span className="ml-2 text-sm font-medium text-gray-700">
                           {prompt.avg_rating.toFixed(1)} ({prompt.ratings_count})
                         </span>
                       </div>
-                      <span className="text-2xl font-bold text-blue-600">¥{prompt.price_jpy.toLocaleString()}</span>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                          ¥{prompt.price_jpy.toLocaleString()}
+                        </div>
+                      </div>
                     </div>
-                    <div className="mt-2 flex items-center justify-between text-sm text-gray-500">
-                      <span>👀 {prompt.view_count}</span>
-                      <span>❤️ {prompt.like_count}</span>
-                      <span>{prompt.categories?.name || '未分類'}</span>
+                    
+                    <div className="flex items-center justify-between text-xs text-gray-500 pt-3 border-t border-gray-100">
+                      <span className="flex items-center">👀 {prompt.view_count}</span>
+                      <span className="flex items-center">❤️ {prompt.like_count}</span>
                     </div>
                   </div>
                 </Link>
@@ -242,7 +253,7 @@ export default function HomePage() {
           <div className="text-center mt-8">
             <Link
               href="/search"
-              className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+              className="inline-block bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-xl font-bold shadow-lg hover:shadow-xl hover:from-blue-700 hover:to-purple-700 transition-all hover:scale-105 active:scale-95"
             >
               すべてのプロンプトを見る
             </Link>
@@ -300,19 +311,19 @@ export default function HomePage() {
               <>
                 <Link
                   href="/profile"
-                  className="inline-block bg-white text-blue-600 px-8 py-3 rounded-lg text-lg font-semibold hover:bg-gray-100 transition-colors"
+                  className="inline-block bg-white text-blue-600 px-8 py-3 rounded-lg text-lg font-semibold shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-95"
                 >
                   出品プロンプトを確認
                 </Link>
                 <Link
                   href="/prompts/create"
-                  className="inline-block bg-white text-blue-600 px-8 py-3 rounded-lg text-lg font-semibold hover:bg-gray-100 transition-colors"
+                  className="inline-block bg-white text-blue-600 px-8 py-3 rounded-lg text-lg font-semibold shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-95"
                 >
                   プロンプトを出品
                 </Link>
                 <Link
                   href="/search"
-                  className="inline-block border-2 border-white text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors"
+                  className="inline-block border-2 border-white text-white px-8 py-3 rounded-lg text-lg font-semibold backdrop-blur-sm bg-white/10 hover:bg-white hover:text-blue-600 transition-all hover:scale-105 active:scale-95 shadow-lg"
                 >
                   プロンプトを探す
                 </Link>
@@ -321,13 +332,13 @@ export default function HomePage() {
               <>
                 <Link
                   href="/auth/register"
-                  className="inline-block bg-white text-blue-600 px-8 py-3 rounded-lg text-lg font-semibold hover:bg-gray-100 transition-colors"
+                  className="inline-block bg-white text-blue-600 px-8 py-3 rounded-lg text-lg font-semibold shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-95"
                 >
                   無料でアカウント作成
                 </Link>
                 <Link
                   href="/search"
-                  className="inline-block border-2 border-white text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors"
+                  className="inline-block border-2 border-white text-white px-8 py-3 rounded-lg text-lg font-semibold backdrop-blur-sm bg-white/10 hover:bg-white hover:text-blue-600 transition-all hover:scale-105 active:scale-95 shadow-lg"
                 >
                   プロンプトを探す
                 </Link>

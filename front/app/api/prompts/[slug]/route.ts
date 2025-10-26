@@ -202,7 +202,7 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { title, description, content, category_id, price, tags } = body;
+    const { title, description, content, category_id, price, tags, thumbnail_url } = body;
 
     // バリデーション
     if (!title || !description || !content || !category_id || price === undefined || price === null) {
@@ -241,16 +241,23 @@ export async function PUT(
     }
 
     // プロンプトを更新
+    const updateData: Record<string, unknown> = {
+      title,
+      short_description: description,
+      long_description: content,
+      category_id: parseInt(category_id),
+      price_jpy: parseFloat(price),
+      updated_at: new Date().toISOString()
+    };
+
+    // サムネイル画像URLがある場合は更新
+    if (thumbnail_url !== undefined) {
+      updateData.thumbnail_url = thumbnail_url || null;
+    }
+
     const { data: updatedPrompt, error: updateError } = await supabase
       .from('prompts')
-      .update({
-        title,
-        short_description: description,
-        long_description: content,
-        category_id: parseInt(category_id),
-        price_jpy: parseFloat(price),
-        updated_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('id', existingPrompt.id)
       .select()
       .single();

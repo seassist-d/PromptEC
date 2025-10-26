@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Header from '@/components/layout/SimpleHeader';
+import Footer from '@/components/layout/Footer';
 import { useAuth } from '../../lib/useAuth';
 import { getProfileClient } from '../../lib/profile-client';
 import { getProfileFromAuth } from '../../lib/profile-fallback';
@@ -103,10 +105,14 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="container mx-auto px-4">
-        <ProfileDisplay user={user} />
-      </div>
+    <div className="min-h-screen flex flex-col bg-gray-50">
+      <Header />
+      <main className="flex-1 py-8">
+        <div className="container mx-auto px-4">
+          <ProfileDisplay user={user} />
+        </div>
+      </main>
+      <Footer />
     </div>
   );
 }

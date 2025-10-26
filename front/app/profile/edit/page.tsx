@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import Header from '@/components/layout/SimpleHeader';
+import Footer from '@/components/layout/Footer';
 import { useAuth } from '../../../lib/useAuth';
 import { getProfileClient } from '../../../lib/profile-client';
 import ProfileEditForm from '../../../components/profile/ProfileEditForm';
@@ -85,12 +88,20 @@ export default function ProfileEditPage() {
           </div>
           <h2 className="text-xl font-semibold text-gray-900 mb-2">エラーが発生しました</h2>
           <p className="text-gray-600 mb-4">{error}</p>
-          <button
-            onClick={() => router.push('/profile')}
-            className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700"
-          >
-            プロフィールに戻る
-          </button>
+          <div className="flex justify-center gap-4">
+            <Link
+              href="/"
+              className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700"
+            >
+              トップに戻る
+            </Link>
+            <button
+              onClick={() => router.push('/profile')}
+              className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300"
+            >
+              プロフィールに戻る
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -101,38 +112,63 @@ export default function ProfileEditPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <p className="text-gray-600">ユーザー情報が見つかりません</p>
-          <button
-            onClick={() => router.push('/profile')}
-            className="mt-4 px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700"
-          >
-            プロフィールに戻る
-          </button>
+          <div className="flex justify-center gap-4 mt-4">
+            <Link
+              href="/"
+              className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700"
+            >
+              トップに戻る
+            </Link>
+            <button
+              onClick={() => router.push('/profile')}
+              className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300"
+            >
+              プロフィールに戻る
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="container mx-auto px-4">
-        <div className="max-w-4xl mx-auto">
-          {/* プレビュー表示 */}
-          <div className="mb-8">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">プレビュー</h2>
-            <ProfileDisplay user={user} showEditButton={false} />
-          </div>
-          
-          {/* 編集フォーム */}
-          <div>
-            <h2 className="text-lg font-medium text-gray-900 mb-4">編集</h2>
-            <ProfileEditForm
-              user={user}
-              onSuccess={handleSuccess}
-              onCancel={handleCancel}
-            />
+    <div className="min-h-screen flex flex-col bg-gray-50">
+      <Header />
+      <main className="flex-1 py-8">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto">
+            {/* ナビゲーション */}
+            <div className="mb-6">
+              <Link 
+                href="/" 
+                className="text-blue-600 hover:text-blue-800 inline-flex items-center text-sm font-medium"
+              >
+                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                トップへ戻る
+              </Link>
+            </div>
+
+            {/* プレビュー表示 */}
+            <div className="mb-8">
+              <h2 className="text-lg font-medium text-gray-900 mb-4">プレビュー</h2>
+              <ProfileDisplay user={user} showEditButton={false} />
+            </div>
+            
+            {/* 編集フォーム */}
+            <div>
+              <h2 className="text-lg font-medium text-gray-900 mb-4">編集</h2>
+              <ProfileEditForm
+                user={user}
+                onSuccess={handleSuccess}
+                onCancel={handleCancel}
+              />
+            </div>
           </div>
         </div>
-      </div>
+      </main>
+      <Footer />
     </div>
   );
 }

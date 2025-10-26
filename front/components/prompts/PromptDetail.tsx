@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { PromptDetail as PromptDetailType } from '@/types/prompt';
 import { useAuth } from '@/lib/useAuth';
 import AddToCartButton from '../cart/AddToCartButton';
+import LikeButton from './LikeButton';
 
 interface PromptDetailProps {
   slug: string;
@@ -245,9 +246,17 @@ export default function PromptDetail({ slug }: PromptDetailProps) {
               <span className="text-sm text-gray-400">まだ評価がありません</span>
             )}
 
-            <div className="flex items-center space-x-4 text-sm text-gray-500">
-              <span>👁️ {prompt.view_count} 回閲覧</span>
-              <span>❤️ {prompt.like_count} いいね</span>
+            <div className="flex items-center space-x-6">
+              <span className="text-sm text-gray-500">
+                👁️ {prompt.view_count} 回閲覧
+              </span>
+              <LikeButton
+                promptId={prompt.id}
+                promptSlug={prompt.slug}
+                initialLikeCount={prompt.like_count}
+                showCount={true}
+                size="md"
+              />
             </div>
           </div>
 

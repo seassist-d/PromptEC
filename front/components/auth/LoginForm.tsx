@@ -103,6 +103,22 @@ export default function LoginForm({ onSuccess, onError }: LoginFormProps) {
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
+    
+    // リアルタイムバリデーション
+    const newErrors: Record<string, string> = {};
+    
+    if (name === 'email' && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+      newErrors.email = '正しいメールアドレスを入力してください';
+    }
+    
+    if (name === 'password' && value && value.length < 6) {
+      newErrors.password = 'パスワードは6文字以上で入力してください';
+    }
+    
+    // エラーがあれば設定
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+    }
   };
 
   if (!mounted) {
@@ -126,6 +142,9 @@ export default function LoginForm({ onSuccess, onError }: LoginFormProps) {
       )}
 
       <div>
+        <label htmlFor="email" className="sr-only">
+          メールアドレス
+        </label>
         <input
           type="email"
           id="email"
@@ -137,13 +156,19 @@ export default function LoginForm({ onSuccess, onError }: LoginFormProps) {
           }`}
           placeholder="メールアドレスを入力"
           disabled={isLoading}
+          aria-invalid={!!errors.email}
+          aria-describedby={errors.email ? 'email-error' : undefined}
+          aria-required="true"
         />
         {errors.email && (
-          <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+          <p id="email-error" className="mt-1 text-sm text-red-600" role="alert">{errors.email}</p>
         )}
       </div>
 
       <div>
+        <label htmlFor="password" className="sr-only">
+          パスワード
+        </label>
         <input
           type="password"
           id="password"
@@ -155,9 +180,12 @@ export default function LoginForm({ onSuccess, onError }: LoginFormProps) {
           }`}
           placeholder="パスワードを入力してください"
           disabled={isLoading}
+          aria-invalid={!!errors.password}
+          aria-describedby={errors.password ? 'password-error' : undefined}
+          aria-required="true"
         />
         {errors.password && (
-          <p className="mt-1 text-sm text-red-600">{errors.password}</p>
+          <p id="password-error" className="mt-1 text-sm text-red-600" role="alert">{errors.password}</p>
         )}
       </div>
 
@@ -185,6 +213,8 @@ export default function LoginForm({ onSuccess, onError }: LoginFormProps) {
         type="submit"
         disabled={isLoading}
         className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-md text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+        aria-busy={isLoading}
+        aria-label="ログイン"
       >
         {isLoading ? 'ログイン中...' : 'ログイン'}
       </button>

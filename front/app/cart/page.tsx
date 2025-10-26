@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect } from 'react';
+import Header from '@/components/layout/SimpleHeader';
+import Footer from '@/components/layout/Footer';
 import { useCart } from '@/hooks/useCart';
 import CartList from '@/components/cart/CartList';
 import CartSummary from '@/components/cart/CartSummary';
@@ -17,8 +19,10 @@ export default function CartPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen flex flex-col bg-gray-50">
+      <Header />
+      <main className="flex-1">
+        <div className="container mx-auto px-4 py-8">
         {/* ヘッダー */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
@@ -154,7 +158,9 @@ export default function CartPage() {
             </div>
           </div>
         </div>
-      </div>
+        </div>
+      </main>
+      <Footer />
     </div>
   );
 }

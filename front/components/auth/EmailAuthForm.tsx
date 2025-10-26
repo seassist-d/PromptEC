@@ -164,25 +164,60 @@ export default function EmailAuthForm({ onSuccess, onError, onNavigateToLogin }:
     }
   };
 
-  // 入力値変更時のエラークリア
+  // 入力値変更時のリアルタイムバリデーション
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setEmail(e.target.value);
+    const value = e.target.value;
+    setEmail(value);
+    
+    // エラーをクリア
     if (errors.email) {
       setErrors({});
+    }
+    
+    // リアルタイムバリデーション（入力中でも簡易チェック）
+    if (value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+      setErrors({ email: '正しいメールアドレスを入力してください' });
     }
   };
 
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPassword(e.target.value);
+    const value = e.target.value;
+    setPassword(value);
+    
+    // エラーをクリア
     if (errors.password) {
       setErrors({});
+    }
+    
+    // リアルタイムバリデーション
+    if (value && value.length < 6) {
+      setErrors({ password: 'パスワードは6文字以上で入力してください' });
+    }
+    
+    // 確認パスワードと比較
+    if (confirmPassword && value !== confirmPassword) {
+      setErrors(prev => ({ ...prev, confirmPassword: 'パスワードが一致しません' }));
+    } else if (confirmPassword && value === confirmPassword) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.confirmPassword;
+        return newErrors;
+      });
     }
   };
 
   const handleConfirmPasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setConfirmPassword(e.target.value);
+    const value = e.target.value;
+    setConfirmPassword(value);
+    
+    // エラーをクリア
     if (errors.confirmPassword) {
       setErrors({});
+    }
+    
+    // リアルタイムバリデーション
+    if (password && value !== password) {
+      setErrors({ confirmPassword: 'パスワードが一致しません' });
     }
   };
 
@@ -277,6 +312,9 @@ export default function EmailAuthForm({ onSuccess, onError, onNavigateToLogin }:
 
       {/* メールアドレス入力欄 */}
       <div>
+        <label htmlFor="email" className="sr-only">
+          メールアドレス
+        </label>
         <input
           type="email"
           id="email"
@@ -288,9 +326,12 @@ export default function EmailAuthForm({ onSuccess, onError, onNavigateToLogin }:
           }`}
           placeholder="メールアドレスを入力"
           disabled={isLoading}
+          aria-invalid={!!errors.email}
+          aria-describedby={errors.email ? 'email-error' : undefined}
+          aria-required="true"
         />
         {errors.email && (
-          <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+          <p id="email-error" className="mt-1 text-sm text-red-600" role="alert">{errors.email}</p>
         )}
       </div>
 
@@ -302,8 +343,10 @@ export default function EmailAuthForm({ onSuccess, onError, onNavigateToLogin }:
             onClick={handleEmailContinue}
             disabled={isLoading}
             className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-md text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+            aria-busy={isLoading}
+            aria-label="メールアドレス入力の続行"
           >
-            続行
+            {isLoading ? '処理中...' : '続行'}
           </button>
           <p className="text-xs text-gray-500 text-center mt-2">
             続行することで、<a href="/terms" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-700">利用規約</a>及び<a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-700">プライバシーポリシー</a>に<br />
@@ -316,6 +359,9 @@ export default function EmailAuthForm({ onSuccess, onError, onNavigateToLogin }:
       {showPassword && (
         <div className="space-y-4">
           <div>
+            <label htmlFor="password" className="sr-only">
+              パスワード
+            </label>
             <input
               type="password"
               id="password"
@@ -327,13 +373,19 @@ export default function EmailAuthForm({ onSuccess, onError, onNavigateToLogin }:
               }`}
               placeholder="パスワードを入力"
               disabled={isLoading}
+              aria-invalid={!!errors.password}
+              aria-describedby={errors.password ? 'password-error' : undefined}
+              aria-required="true"
             />
             {errors.password && (
-              <p className="mt-1 text-sm text-red-600">{errors.password}</p>
+              <p id="password-error" className="mt-1 text-sm text-red-600" role="alert">{errors.password}</p>
             )}
           </div>
 
           <div>
+            <label htmlFor="confirmPassword" className="sr-only">
+              パスワード確認
+            </label>
             <input
               type="password"
               id="confirmPassword"
@@ -345,9 +397,12 @@ export default function EmailAuthForm({ onSuccess, onError, onNavigateToLogin }:
               }`}
               placeholder="パスワードを再入力"
               disabled={isLoading}
+              aria-invalid={!!errors.confirmPassword}
+              aria-describedby={errors.confirmPassword ? 'confirmPassword-error' : undefined}
+              aria-required="true"
             />
             {errors.confirmPassword && (
-              <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
+              <p id="confirmPassword-error" className="mt-1 text-sm text-red-600" role="alert">{errors.confirmPassword}</p>
             )}
           </div>
 
@@ -357,6 +412,8 @@ export default function EmailAuthForm({ onSuccess, onError, onNavigateToLogin }:
             onClick={handlePasswordContinue}
             disabled={isLoading}
             className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-md text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+            aria-busy={isLoading}
+            aria-label="パスワード入力の続行"
           >
             {isLoading ? '処理中...' : '続行'}
           </button>
@@ -367,6 +424,7 @@ export default function EmailAuthForm({ onSuccess, onError, onNavigateToLogin }:
             onClick={handleBack}
             disabled={isLoading}
             className="w-full flex justify-center py-2.5 px-4 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+            aria-label="前の画面に戻る"
           >
             戻る
           </button>

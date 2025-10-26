@@ -2,6 +2,7 @@
 
 import { Prompt, SearchFilters as SearchFiltersType } from '@/components/pages/SearchPage';
 import Link from 'next/link';
+import SkeletonCard from '@/components/common/SkeletonCard';
 
 interface SearchResultsProps {
   results: Prompt[];
@@ -79,15 +80,7 @@ export default function SearchResults({
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {Array.from({ length: 6 }).map((_, index) => (
-            <div key={index} className="bg-white rounded-lg shadow-sm border p-6 animate-pulse">
-              <div className="h-48 bg-gray-200 rounded mb-4"></div>
-              <div className="h-4 bg-gray-200 rounded mb-2"></div>
-              <div className="h-3 bg-gray-200 rounded mb-4 w-3/4"></div>
-              <div className="flex justify-between items-center">
-                <div className="h-4 bg-gray-200 rounded w-16"></div>
-                <div className="h-4 bg-gray-200 rounded w-12"></div>
-              </div>
-            </div>
+            <SkeletonCard key={index} />
           ))}
         </div>
       </div>
@@ -161,16 +154,28 @@ export default function SearchResults({
           <Link
             key={prompt.id}
             href={`/prompts/${prompt.slug}`}
-            className="bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition-all duration-200 hover:scale-105"
+            className="group relative bg-white rounded-2xl shadow-lg overflow-hidden card-hover animate-slide-up border border-gray-100"
           >
+            {/* グラデーションオーバーレイ */}
+            <div className="absolute inset-0 bg-gradient-to-t from-blue-600/10 via-purple-600/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10"></div>
+            
+            {/* ホバー時のハートアイコン */}
+            <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20">
+              <div className="bg-white/90 backdrop-blur-sm rounded-full p-2 shadow-lg">
+                <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+              </div>
+            </div>
+
             <div className="p-6">
               {/* サムネイル */}
-              <div className="aspect-video bg-gradient-to-br from-blue-400 to-purple-500 rounded-lg mb-4 overflow-hidden">
+              <div className="relative aspect-video bg-gradient-to-br from-blue-400 via-purple-500 to-pink-500 rounded-xl mb-4 overflow-hidden">
                 {prompt.thumbnail_url ? (
                   <img
                     src={prompt.thumbnail_url}
                     alt={prompt.title}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-white">
@@ -183,32 +188,32 @@ export default function SearchResults({
 
               {/* カテゴリ */}
               <div className="mb-3">
-                <span className="inline-block bg-blue-100 text-blue-800 text-xs font-semibold px-2 py-1 rounded-full">
+                <span className="inline-block bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800 text-xs font-semibold px-3 py-1 rounded-full border border-blue-200">
                   {prompt.category_name}
                 </span>
               </div>
 
               {/* タイトル */}
-              <h3 className="text-lg font-bold text-gray-900 mb-3 line-clamp-2">
+              <h3 className="text-lg font-bold text-gray-900 mb-3 line-clamp-2 group-hover:text-blue-600 transition-colors">
                 {prompt.title}
               </h3>
 
               {/* 説明 */}
               {prompt.short_description && (
-                <p className="text-sm text-gray-600 mb-4 line-clamp-2">
+                <p className="text-sm text-gray-600 mb-4 line-clamp-2 leading-relaxed">
                   {prompt.short_description}
                 </p>
               )}
 
               {/* 評価と価格 */}
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center pt-3 border-t border-gray-100">
                 <div className="flex items-center space-x-2">
                   {prompt.avg_rating ? (
                     <>
                       <div className="flex items-center">
                         {renderStars(prompt.avg_rating)}
                       </div>
-                      <span className="text-sm font-medium text-gray-600">
+                      <span className="text-sm font-medium text-gray-700">
                         {prompt.avg_rating.toFixed(1)} ({prompt.ratings_count})
                       </span>
                     </>
@@ -218,7 +223,7 @@ export default function SearchResults({
                 </div>
                 
                 <div className="text-right">
-                  <div className="text-xl font-bold text-blue-600">
+                  <div className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                     {formatPrice(prompt.price_jpy)}
                   </div>
                   <div className="text-xs text-gray-500">
