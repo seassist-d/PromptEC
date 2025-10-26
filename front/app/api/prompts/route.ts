@@ -128,6 +128,41 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // プロンプトのバージョン1を作成
+    const { data: promptVersion, error: versionError } = await supabase
+      .from('prompt_versions')
+      .insert({
+        prompt_id: prompt.id,
+        version: 1,
+        title_snapshot: title,
+        description_snapshot: description,
+        sample_output_snapshot: content,
+        content_type: 'text',
+        published_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    if (versionError) {
+      console.error('Prompt version creation error:', versionError);
+      console.warn('警告: プロンプトバージョンの作成に失敗しました。購入機能に影響する可能性があります。');
+    } else if (promptVersion) {
+      // プロンプトアセットを作成（ダウンロード用）
+      const { error: assetError } = await supabase
+        .from('prompt_assets')
+        .insert({
+          prompt_version_id: promptVersion.id,
+          kind: 'text_body',
+          text_content: content,
+          size_bytes: new TextEncoder().encode(content).length
+        });
+
+      if (assetError) {
+        console.error('Prompt asset creation error:', assetError);
+        console.warn('警告: プロンプトアセットの作成に失敗しました。ダウンロード機能に影響する可能性があります。');
+      }
+    }
+
     // タグを追加（tagsテーブルとprompt_tagsテーブルを使用）
     if (tags && tags.length > 0) {
       try {
