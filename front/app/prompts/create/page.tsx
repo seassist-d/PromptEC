@@ -455,6 +455,7 @@ export default function PromptCreatePage() {
             </form>
           </div>
         </div>
+      </div>
       </main>
       <Footer />
     </div>

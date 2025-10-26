@@ -65,13 +65,16 @@ export default function Header() {
   };
 
   return (
-    <header className="bg-white shadow-sm border-b">
+    <header className="bg-gradient-to-r from-blue-600 to-purple-600 shadow-lg border-b border-blue-500/20">
       <div className="w-full px-1 sm:px-2 lg:px-3">
         <div className="flex justify-between items-center h-16">
           {/* ロゴ */}
           <div className="flex-shrink-0 ml-4">
-            <Link href="/" className="flex items-center">
-              <span className="text-2xl font-bold text-blue-600">PromptEC</span>
+            <Link href="/" className="flex items-center group">
+              <span className="text-3xl font-bold text-white group-hover:text-blue-200 transition-colors duration-300">
+                PromptEC
+              </span>
+              <span className="ml-2 text-white text-2xl animate-bounce">✨</span>
             </Link>
           </div>
           
@@ -82,13 +85,13 @@ export default function Header() {
                 type="text"
                 name="q"
                 placeholder="プロンプトを検索..."
-                className="w-full px-4 py-3 bg-white text-gray-900 placeholder-gray-500 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors shadow-sm"
+                className="w-full px-4 py-3 bg-white/10 backdrop-blur-md border border-white/20 text-white placeholder-white/70 rounded-xl focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-white/40 transition-all shadow-lg"
               />
               <button 
                 type="submit"
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white hover:text-blue-200 transition-colors animate-pulse-glow"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
               </button>
@@ -97,20 +100,20 @@ export default function Header() {
           
           {/* 右: ナビメニュー */}
           <div className="flex items-center space-x-4">
-            <Link href="/" className="text-gray-500 hover:text-gray-900 px-3 py-2 text-sm font-medium">
+            <Link href="/" className="text-white/90 hover:text-white px-3 py-2 text-sm font-medium transition-colors rounded-lg hover:bg-white/10">
               ホーム
             </Link>
-            <Link href="/prompts/create" className="text-gray-500 hover:text-gray-900 px-3 py-2 text-sm font-medium">
+            <Link href="/prompts/create" className="text-white/90 hover:text-white px-3 py-2 text-sm font-medium transition-colors rounded-lg hover:bg-white/10">
               プロンプトを登録
             </Link>
             
             {/* カートアイコン */}
-            <Link href="/cart" className="relative text-gray-500 hover:text-gray-900 p-2 transition-colors">
+            <Link href="/cart" className="relative text-white/90 hover:text-white p-2 transition-colors rounded-lg hover:bg-white/10">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l-1 12H6l-1-12z" />
               </svg>
               {itemCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-semibold">
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold shadow-lg animate-bounce">
                   {itemCount > 99 ? '99+' : itemCount}
                 </span>
               )}
@@ -126,7 +129,7 @@ export default function Header() {
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="flex items-center space-x-2 text-gray-700 hover:text-gray-900 px-3 py-2 text-sm font-medium rounded-md hover:bg-gray-50"
+                  className="flex items-center space-x-2 text-white/90 hover:text-white px-3 py-2 text-sm font-medium rounded-lg hover:bg-white/10 transition-colors"
                 >
                   {/* ユーザーアバター */}
                   <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
@@ -183,10 +186,10 @@ export default function Header() {
             ) : (
               // 未ログイン: ログイン・新規登録ボタン
               <>
-                <Link href="/auth/login" className="text-gray-500 hover:text-gray-900 px-3 py-2 text-sm font-medium">
+                <Link href="/auth/login" className="text-white/90 hover:text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-white/10">
                   ログイン
                 </Link>
-                <Link href="/auth/register" className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700">
+                <Link href="/auth/register" className="bg-white text-blue-600 px-6 py-2 rounded-lg text-sm font-bold hover:bg-blue-50 shadow-lg transition-all hover:scale-105">
                   新規登録
                 </Link>
               </>

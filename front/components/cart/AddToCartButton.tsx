@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useCart } from '@/hooks/useCart';
+import toast from 'react-hot-toast';
 
 interface AddToCartButtonProps {
   promptId: string;
@@ -29,16 +30,22 @@ export default function AddToCartButton({
       const result = await addToCart(promptId, promptData);
       
       if (result.success) {
-        // 成功時のフィードバック（トースト通知など）
-        console.log('カートに追加しました');
+        // 成功時のトースト通知
+        toast.success(`カートに追加しました！`, {
+          icon: '🛒',
+          duration: 3000,
+        });
       } else {
-        // エラーハンドリング
-        console.error('カート追加エラー:', result.error);
-        alert(result.error || 'カートへの追加に失敗しました');
+        // エラートースト通知
+        toast.error(result.error || 'カートへの追加に失敗しました', {
+          duration: 4000,
+        });
       }
     } catch (error) {
       console.error('カート追加エラー:', error);
-      alert('カートへの追加に失敗しました');
+      toast.error('カートへの追加に失敗しました', {
+        duration: 4000,
+      });
     } finally {
       setIsAdding(false);
     }
@@ -48,8 +55,9 @@ export default function AddToCartButton({
   const isDisabled = isAdding || isLoading || isAlreadyInCart;
 
   const defaultClassName = `
-    w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold 
-    hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed
+    relative overflow-hidden w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-6 rounded-lg font-semibold 
+    hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl
+    active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed
     ${className}
   `.trim();
 
@@ -58,6 +66,7 @@ export default function AddToCartButton({
       <button
         disabled
         className={defaultClassName}
+        aria-label="カートに追加済み"
       >
         <span className="flex items-center justify-center">
           <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -74,9 +83,14 @@ export default function AddToCartButton({
       onClick={handleAddToCart}
       disabled={isDisabled}
       className={defaultClassName}
+      aria-label="カートに追加"
+      aria-busy={isAdding}
     >
+      {/* グラデーションオーバーレイ */}
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-500 transform -skew-x-12"></div>
+      
       {isAdding ? (
-        <span className="flex items-center justify-center">
+        <span className="flex items-center justify-center relative z-10">
           <svg className="w-5 h-5 mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>
@@ -84,7 +98,7 @@ export default function AddToCartButton({
         </span>
       ) : (
         children || (
-          <span className="flex items-center justify-center">
+          <span className="flex items-center justify-center relative z-10">
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l-1 12H6l-1-12z" />
             </svg>
