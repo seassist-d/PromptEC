@@ -217,7 +217,7 @@ export default function EmailAuthForm({ onSuccess, onError, onNavigateToLogin }:
   if (emailSent) {
     return (
       <div className="text-center space-y-4">
-        <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded">
+        <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg shadow-sm">
           <div className="flex">
             <div className="flex-shrink-0">
               <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
@@ -239,7 +239,7 @@ export default function EmailAuthForm({ onSuccess, onError, onNavigateToLogin }:
           <button
             onClick={handleResendEmail}
             disabled={isLoading}
-            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-md text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
           >
             {isLoading ? '送信中...' : '確認メールを再送する'}
           </button>
@@ -247,7 +247,7 @@ export default function EmailAuthForm({ onSuccess, onError, onNavigateToLogin }:
           <button
             onClick={handleRetryWithNewEmail}
             disabled={isLoading}
-            className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full flex justify-center py-2.5 px-4 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
           >
             別のメールアドレスで再試行
           </button>
@@ -260,13 +260,13 @@ export default function EmailAuthForm({ onSuccess, onError, onNavigateToLogin }:
     <div className="space-y-4">
       {/* エラーメッセージ */}
       {errors.general && mounted && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg shadow-sm">
           <div className="flex items-center justify-between">
             <span>{errors.general}</span>
             {errors.showLoginButton && onNavigateToLogin && (
               <button
                 onClick={onNavigateToLogin}
-                className="ml-2 text-sm font-medium text-blue-600 hover:text-blue-500 underline"
+                className="ml-2 text-sm font-medium text-blue-600 hover:text-blue-500 underline transition-colors"
               >
                 ログイン画面へ
               </button>
@@ -283,7 +283,7 @@ export default function EmailAuthForm({ onSuccess, onError, onNavigateToLogin }:
           name="email"
           value={email}
           onChange={handleEmailChange}
-          className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-500 bg-white ${
+          className={`block w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-500 bg-white transition-colors ${
             errors.email ? 'border-red-300 bg-red-50' : 'border-gray-300'
           }`}
           placeholder="メールアドレスを入力"
@@ -296,14 +296,20 @@ export default function EmailAuthForm({ onSuccess, onError, onNavigateToLogin }:
 
       {/* メールアドレス続行ボタン */}
       {!showPassword && (
-        <button
-          type="button"
-          onClick={handleEmailContinue}
-          disabled={isLoading}
-          className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          続行
-        </button>
+        <>
+          <button
+            type="button"
+            onClick={handleEmailContinue}
+            disabled={isLoading}
+            className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-md text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+          >
+            続行
+          </button>
+          <p className="text-xs text-gray-500 text-center mt-2">
+            続行することで、<a href="/terms" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-700">利用規約</a>及び<a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-700">プライバシーポリシー</a>に<br />
+            同意するものとみなされます
+          </p>
+        </>
       )}
 
       {/* パスワード入力欄（メールアドレス入力後に表示） */}
@@ -316,7 +322,7 @@ export default function EmailAuthForm({ onSuccess, onError, onNavigateToLogin }:
               name="password"
               value={password}
               onChange={handlePasswordChange}
-              className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-500 bg-white ${
+              className={`block w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-500 bg-white transition-colors ${
                 errors.password ? 'border-red-300 bg-red-50' : 'border-gray-300'
               }`}
               placeholder="パスワードを入力"
@@ -334,7 +340,7 @@ export default function EmailAuthForm({ onSuccess, onError, onNavigateToLogin }:
               name="confirmPassword"
               value={confirmPassword}
               onChange={handleConfirmPasswordChange}
-              className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-500 bg-white ${
+              className={`block w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-500 bg-white transition-colors ${
                 errors.confirmPassword ? 'border-red-300 bg-red-50' : 'border-gray-300'
               }`}
               placeholder="パスワードを再入力"
@@ -350,7 +356,7 @@ export default function EmailAuthForm({ onSuccess, onError, onNavigateToLogin }:
             type="button"
             onClick={handlePasswordContinue}
             disabled={isLoading}
-            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-md text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
           >
             {isLoading ? '処理中...' : '続行'}
           </button>
@@ -360,7 +366,7 @@ export default function EmailAuthForm({ onSuccess, onError, onNavigateToLogin }:
             type="button"
             onClick={handleBack}
             disabled={isLoading}
-            className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full flex justify-center py-2.5 px-4 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
           >
             戻る
           </button>

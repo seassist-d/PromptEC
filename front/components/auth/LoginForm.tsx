@@ -120,25 +120,22 @@ export default function LoginForm({ onSuccess, onError }: LoginFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {errors.general && mounted && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg shadow-sm">
           {errors.general}
         </div>
       )}
 
       <div>
-        <label htmlFor="email" className="block text-sm font-medium text-gray-900">
-          メールアドレス
-        </label>
         <input
           type="email"
           id="email"
           name="email"
           value={formData.email}
           onChange={handleInputChange}
-          className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-500 bg-white ${
+          className={`mt-1 block w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-500 bg-white transition-colors ${
             errors.email ? 'border-red-300 bg-red-50' : 'border-gray-300'
           }`}
-          placeholder="example@email.com"
+          placeholder="メールアドレスを入力"
           disabled={isLoading}
         />
         {errors.email && (
@@ -147,19 +144,16 @@ export default function LoginForm({ onSuccess, onError }: LoginFormProps) {
       </div>
 
       <div>
-        <label htmlFor="password" className="block text-sm font-medium text-gray-900">
-          パスワード
-        </label>
         <input
           type="password"
           id="password"
           name="password"
           value={formData.password}
           onChange={handleInputChange}
-          className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-500 bg-white ${
+          className={`mt-1 block w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-500 bg-white transition-colors ${
             errors.password ? 'border-red-300 bg-red-50' : 'border-gray-300'
           }`}
-          placeholder="パスワードを入力"
+          placeholder="パスワードを入力してください"
           disabled={isLoading}
         />
         {errors.password && (
@@ -181,7 +175,7 @@ export default function LoginForm({ onSuccess, onError }: LoginFormProps) {
         </div>
 
         <div className="text-sm">
-          <Link href="/auth/forgot-password" className="font-medium text-blue-600 hover:text-blue-500">
+          <Link href="/auth/forgot-password" className="font-medium text-blue-600 hover:text-blue-500 transition-colors">
             パスワードを忘れた方
           </Link>
         </div>
@@ -190,7 +184,7 @@ export default function LoginForm({ onSuccess, onError }: LoginFormProps) {
       <button
         type="submit"
         disabled={isLoading}
-        className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-md text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
       >
         {isLoading ? 'ログイン中...' : 'ログイン'}
       </button>

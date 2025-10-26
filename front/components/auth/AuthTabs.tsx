@@ -25,12 +25,12 @@ export default function AuthTabs() {
 
   if (!mounted) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-100 via-gray-50 to-gray-200 py-12 px-4 sm:px-6 lg:px-8" style={{background: 'linear-gradient(to bottom right, #f3f4f6, #f9fafb, #e5e7eb)'}}>
         <div className="max-w-md w-full space-y-8">
           <div className="animate-pulse">
             <div className="h-8 bg-gray-200 rounded mb-4"></div>
             <div className="h-4 bg-gray-200 rounded mb-8"></div>
-            <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+            <div className="bg-white py-8 px-4 shadow-2xl border-2 border-gray-300 sm:rounded-xl sm:px-10" style={{boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'}}>
               <div className="space-y-4">
                 <div className="h-10 bg-gray-200 rounded"></div>
                 <div className="h-10 bg-gray-200 rounded"></div>
@@ -44,7 +44,7 @@ export default function AuthTabs() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 via-gray-100 to-slate-200 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
@@ -90,7 +90,7 @@ export default function AuthTabs() {
         )}
 
         {/* 外部連携ボタンとフォーム */}
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+        <div className="bg-white py-8 px-4 shadow-2xl border-2 border-gray-300 sm:rounded-xl sm:px-10" style={{boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'}}>
           <SocialLoginButtons onSuccess={handleSuccess} onError={handleError} />
           
           {/* 区切り線 */}
