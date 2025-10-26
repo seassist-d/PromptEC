@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Header from '@/components/layout/SimpleHeader';
+import Footer from '@/components/layout/Footer';
 import { useAuth } from '@/lib/useAuth';
 import { uploadPromptThumbnail, createImagePreview } from '@/lib/file-upload';
 
@@ -223,18 +225,20 @@ export default function PromptCreatePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white shadow sm:rounded-lg">
-          <div className="px-4 py-5 sm:p-6">
-            <h1 className="text-2xl font-bold text-gray-900 mb-6">
-              プロンプトを登録
-            </h1>
-            <p className="text-sm text-gray-600 mb-6">
-              新しいプロンプトを登録して販売を開始しましょう。
-            </p>
+    <div className="min-h-screen flex flex-col bg-gray-50">
+      <Header />
+      <main className="flex-1 py-8">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-white shadow sm:rounded-lg">
+            <div className="px-4 py-5 sm:p-6">
+              <h1 className="text-2xl font-bold text-gray-900 mb-6">
+                プロンプトを登録
+              </h1>
+              <p className="text-sm text-gray-600 mb-6">
+                新しいプロンプトを登録して販売を開始しましょう。
+              </p>
 
-            {error && (
+              {error && (
               <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
                 <div className="flex">
                   <div className="flex-shrink-0">
@@ -247,10 +251,10 @@ export default function PromptCreatePage() {
                   </div>
                 </div>
               </div>
-            )}
+              )}
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div>
                 <label htmlFor="title" className="block text-sm font-medium text-gray-700">
                   タイトル <span className="text-red-500">*</span>
                 </label>
@@ -451,7 +455,8 @@ export default function PromptCreatePage() {
             </form>
           </div>
         </div>
-      </div>
+      </main>
+      <Footer />
     </div>
   );
 }
