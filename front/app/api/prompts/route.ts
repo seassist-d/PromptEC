@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, description, content, category_id, price, tags } = body;
+    const { title, description, content, category_id, price, tags, thumbnail_url } = body;
 
     // バリデーション
     if (!title || !description || !content || !category_id || price === undefined || price === null) {
@@ -104,19 +104,26 @@ export async function POST(request: NextRequest) {
       .trim('-');
 
     // プロンプトを作成（データベース構造に合わせて修正）
+    const insertData: Record<string, unknown> = {
+      title,
+      short_description: description,
+      long_description: content,
+      category_id: parseInt(category_id),
+      price_jpy: parseFloat(price),
+      seller_id: user.id,
+      slug: `${slug}-${Date.now()}`,
+      status: 'published',
+      visibility: 'public'
+    };
+
+    // サムネイル画像URLがある場合のみ追加
+    if (thumbnail_url && thumbnail_url.trim()) {
+      insertData.thumbnail_url = thumbnail_url;
+    }
+
     const { data: prompt, error: promptError } = await supabase
       .from('prompts')
-      .insert({
-        title,
-        short_description: description,
-        long_description: content,
-        category_id: parseInt(category_id),
-        price_jpy: parseFloat(price),
-        seller_id: user.id,
-        slug: `${slug}-${Date.now()}`,
-        status: 'published',
-        visibility: 'public'
-      })
+      .insert(insertData)
       .select()
       .single();
 
