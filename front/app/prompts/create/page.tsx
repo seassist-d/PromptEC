@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/useAuth';
+import { uploadPromptThumbnail, createImagePreview } from '@/lib/file-upload';
 
 export default function PromptCreatePage() {
   const router = useRouter();
@@ -19,6 +20,11 @@ export default function PromptCreatePage() {
   const [error, setError] = useState<string>('');
   const [categories, setCategories] = useState<Array<{id: number, name: string}>>([]);
   const [validationErrors, setValidationErrors] = useState<{[key: string]: string}>({});
+  
+  // サムネイル画像関連のstate
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
+  const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -113,6 +119,34 @@ export default function PromptCreatePage() {
     }
   };
 
+  // サムネイル画像の選択
+  const handleThumbnailChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // ファイルバリデーション
+      if (!file.type.startsWith('image/')) {
+        setError('画像ファイルを選択してください');
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        setError('ファイルサイズは5MB以下にしてください');
+        return;
+      }
+
+      setThumbnailFile(file);
+      setError('');
+
+      // プレビュー画像を生成
+      try {
+        const preview = await createImagePreview(file);
+        setThumbnailPreview(preview);
+      } catch (error) {
+        console.error('Preview generation error:', error);
+        setError('プレビューの生成に失敗しました');
+      }
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -128,6 +162,20 @@ export default function PromptCreatePage() {
         throw new Error('ユーザー情報が見つかりません');
       }
 
+      // サムネイル画像のアップロード
+      let thumbnailUrl = '';
+      if (thumbnailFile) {
+        setUploadingThumbnail(true);
+        const uploadResult = await uploadPromptThumbnail(thumbnailFile, user.id);
+        
+        if (!uploadResult.success) {
+          throw new Error(uploadResult.error || 'サムネイル画像のアップロードに失敗しました');
+        }
+        
+        thumbnailUrl = uploadResult.url || '';
+        setUploadingThumbnail(false);
+      }
+
       const promptData = {
         title: formData.title.trim(),
         description: formData.description.trim(),
@@ -135,7 +183,8 @@ export default function PromptCreatePage() {
         category_id: parseInt(formData.category_id),
         price: parseFloat(formData.price),
         tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag),
-        seller_id: user.id
+        seller_id: user.id,
+        thumbnail_url: thumbnailUrl
       };
 
       const response = await fetch('/api/prompts', {
@@ -156,6 +205,7 @@ export default function PromptCreatePage() {
     } catch (error) {
       console.error('Prompt creation error:', error);
       setError(error instanceof Error ? error.message : 'プロンプトの登録に失敗しました');
+      setUploadingThumbnail(false);
     } finally {
       setIsLoading(false);
     }
@@ -322,6 +372,38 @@ export default function PromptCreatePage() {
                       <p className="mt-1 text-sm text-red-600">{validationErrors.price}</p>
                     )}
                   </div>
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="thumbnail" className="block text-sm font-medium text-gray-700">
+                  サムネイル画像
+                </label>
+                <div className="mt-1">
+                  <input
+                    type="file"
+                    id="thumbnail"
+                    name="thumbnail"
+                    accept="image/*"
+                    onChange={handleThumbnailChange}
+                    className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md text-gray-900"
+                  />
+                  <p className="mt-1 text-sm text-gray-500">
+                    推奨サイズ: 1200x600px、最大5MB（JPEG、PNG）
+                  </p>
+                  {thumbnailPreview && (
+                    <div className="mt-4">
+                      <p className="text-sm font-medium text-gray-700 mb-2">プレビュー:</p>
+                      <img
+                        src={thumbnailPreview}
+                        alt="サムネイルプレビュー"
+                        className="w-full max-w-md h-48 object-cover border border-gray-300 rounded-md"
+                      />
+                    </div>
+                  )}
+                  {uploadingThumbnail && (
+                    <p className="mt-2 text-sm text-blue-600">画像をアップロード中...</p>
+                  )}
                 </div>
               </div>
 
