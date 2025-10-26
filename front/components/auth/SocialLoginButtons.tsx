@@ -100,7 +100,7 @@ export default function SocialLoginButtons({ onError }: SocialLoginButtonsProps)
         <button
           type="button"
           onClick={handleGoogleLogin}
-          className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+          className="w-full inline-flex justify-center py-2.5 px-4 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-all duration-200 hover:shadow-md"
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24">
             <path
@@ -127,7 +127,7 @@ export default function SocialLoginButtons({ onError }: SocialLoginButtonsProps)
         <button
           type="button"
           onClick={handleMicrosoftLogin}
-          className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+          className="w-full inline-flex justify-center py-2.5 px-4 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-all duration-200 hover:shadow-md"
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24">
             <path fill="#F25022" d="M1 1h10v10H1z" />
