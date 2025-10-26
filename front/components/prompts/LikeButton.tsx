@@ -28,6 +28,17 @@ export default function LikeButton({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // デバッグ用: ステートの変更を監視
+  useEffect(() => {
+    console.log('LikeButton state changed:', { 
+      isLiked, 
+      likeCount, 
+      isLoading, 
+      error,
+      renderCount: likeCount 
+    });
+  }, [isLiked, likeCount, isLoading, error]);
+
   // 認証状態に応じていいね状態を更新
   useEffect(() => {
     if (user) {
@@ -63,17 +74,12 @@ export default function LikeButton({
     setError(null);
 
     try {
-      // 楽観的更新
-      const newIsLiked = !isLiked;
-      const newLikeCount = newIsLiked ? likeCount + 1 : likeCount - 1;
-      
-      setIsLiked(newIsLiked);
-      setLikeCount(newLikeCount);
-
       // slugが利用可能な場合はそれを使用、なければIDを使用
       const endpoint = promptSlug 
         ? `/api/prompts/${promptSlug}/like`
         : `/api/prompts/${promptId}/like`;
+      
+      console.log('Calling API:', endpoint);
       
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -83,36 +89,25 @@ export default function LikeButton({
       });
 
       if (!response.ok) {
-        // エラーが発生した場合は元に戻す
-        setIsLiked(!newIsLiked);
-        setLikeCount(likeCount);
         const data = await response.json();
+        console.error('API Error:', data);
         setError(data.error || 'いいねの処理に失敗しました');
         return;
       }
 
       const data = await response.json();
       
-      // デバッグ用ログ
-      console.log('API Response:', data);
+      console.log('API Response received:', data);
       
-      // ステートを更新
+      // APIレスポンスの値をそのまま使用（楽観的更新なし）
       setIsLiked(data.isLiked);
-      
-      // APIレスポンスの値を使用（楽観的更新の値を上書き）
-      const actualLikeCount = data.likeCount !== undefined ? data.likeCount : newLikeCount;
-      setLikeCount(actualLikeCount);
+      setLikeCount(data.likeCount);
       
       console.log('State updated:', {
         isLiked: data.isLiked,
-        likeCount: actualLikeCount,
-        previousCount: likeCount,
-        optimisticCount: newLikeCount
+        likeCount: data.likeCount
       });
     } catch (error) {
-      // エラーが発生した場合は元に戻す
-      setIsLiked(!isLiked);
-      setLikeCount(likeCount);
       console.error('Like error:', error);
       setError('いいねの処理に失敗しました');
     } finally {
@@ -162,7 +157,7 @@ export default function LikeButton({
             d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
           />
         </svg>
-        {showCount && <span>{likeCount}</span>}
+        {showCount && <span data-testid="like-count">{likeCount}</span>}
       </button>
     );
   }
@@ -212,7 +207,11 @@ export default function LikeButton({
             />
           </svg>
         )}
-        {showCount && <span>{likeCount}</span>}
+        {showCount && (
+          <span data-testid="like-count" className="font-medium">
+            {likeCount}
+          </span>
+        )}
       </button>
       {error && (
         <p className="text-xs text-red-600 mt-1">{error}</p>

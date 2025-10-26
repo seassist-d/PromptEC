@@ -129,10 +129,31 @@ export async function POST(
       );
     }
 
+    console.log('Existing like check:', {
+      hasExistingLike: !!existingLike,
+      existingLikeId: existingLike?.id,
+      user_id: user.id,
+      prompt_id: prompt.id
+    });
+
     let isLiked = false;
     let likeCount = 0;
 
     if (existingLike) {
+      console.log('Existing like found, deleting...');
+      
+      // まず現在のいいね数を取得
+      const { data: currentPrompt, error: fetchError } = await supabase
+        .from('prompts')
+        .select('like_count')
+        .eq('id', prompt.id)
+        .single();
+
+      const currentLikeCount = currentPrompt?.like_count || 0;
+      console.log('Step 1 - Current like count before decrement:', currentLikeCount);
+      console.log('Step 2 - Should decrement to:', Math.max(0, currentLikeCount - 1));
+      console.log('Step 3 - About to delete like from recommendation_events');
+      
       // いいねを削除
       const { error: deleteError } = await supabase
         .from('recommendation_events')
@@ -147,43 +168,58 @@ export async function POST(
         );
       }
 
+      console.log('Like deleted successfully from recommendation_events');
+
       // プロンプトのいいね数を減らす
+      console.log('Attempting to decrement like count for prompt:', prompt.id);
+      
       const { error: updateError } = await supabase.rpc('decrement_like_count', {
         prompt_id: prompt.id
       });
 
       if (updateError) {
         console.error('Error calling decrement_like_count:', updateError);
-        // RPCが存在しない場合は手動で更新
-        const { data: currentPrompt } = await supabase
-          .from('prompts')
-          .select('like_count')
-          .eq('id', prompt.id)
-          .single();
-
-        const newLikeCount = Math.max(0, (currentPrompt?.like_count || 0) - 1);
-        const { error: manualUpdateError } = await supabase
+        console.log('Falling back to manual update');
+        
+        const newLikeCount = Math.max(0, currentLikeCount - 1);
+        console.log('Step 4 - Manually updating like count from', currentLikeCount, 'to', newLikeCount);
+        
+        // UPDATEを実行（.single()なし）
+        const { error: updateResponseError } = await supabase
           .from('prompts')
           .update({ like_count: newLikeCount })
           .eq('id', prompt.id);
         
-        if (manualUpdateError) {
-          console.error('Error manually updating like_count:', manualUpdateError);
+        console.log('Update query error:', updateResponseError);
+        
+        if (updateResponseError) {
+          console.error('Error updating like_count:', updateResponseError);
+          likeCount = Math.max(0, currentLikeCount - 1);
+          console.log('Using calculated value:', likeCount);
+        } else {
+          // 更新後の値を取得
+          const { data: updatedPrompt } = await supabase
+            .from('prompts')
+            .select('like_count')
+            .eq('id', prompt.id)
+            .single();
+          
+          console.log('Updated prompt from DB:', updatedPrompt?.like_count);
+          const updatedCount = updatedPrompt?.like_count ?? Math.max(0, currentLikeCount - 1);
+          console.log('Manual update successful, using count:', updatedCount);
+          likeCount = updatedCount;
         }
-
-        likeCount = newLikeCount;
       } else {
-        // RPCが成功した場合もいいね数を取得
-        const { data: updatedPrompt } = await supabase
-          .from('prompts')
-          .select('like_count')
-          .eq('id', prompt.id)
-          .single();
-        likeCount = updatedPrompt?.like_count || 0;
+        console.log('RPC decrement_like_count successful');
+        // 計算値を使用（RPC関数が成功したので、currentLikeCount - 1が正しい）
+        likeCount = Math.max(0, currentLikeCount - 1);
+        console.log('Calculated like count after RPC:', likeCount);
       }
 
       isLiked = false;
     } else {
+      console.log('No existing like, adding new like...');
+      
       // いいねを追加
       const { data: newLike, error: insertError } = await supabase
         .from('recommendation_events')
@@ -203,67 +239,77 @@ export async function POST(
         );
       }
 
+      console.log('Like inserted successfully:', newLike.id);
+
+      // まず現在のいいね数を取得
+      const { data: currentPrompt, error: fetchError } = await supabase
+        .from('prompts')
+        .select('like_count')
+        .eq('id', prompt.id)
+        .single();
+
+      const currentLikeCount = currentPrompt?.like_count || 0;
+      console.log('Current like count before increment:', currentLikeCount);
+
       // プロンプトのいいね数を増やす
+      console.log('Attempting to increment like count for prompt:', prompt.id);
+      
       const { error: updateError } = await supabase.rpc('increment_like_count', {
         prompt_id: prompt.id
       });
 
       if (updateError) {
         console.error('Error calling increment_like_count:', updateError);
-        // RPCが存在しない場合は手動で更新
-        const { data: currentPrompt } = await supabase
-          .from('prompts')
-          .select('like_count')
-          .eq('id', prompt.id)
-          .single();
-
-        const newLikeCount = (currentPrompt?.like_count || 0) + 1;
-        const { error: manualUpdateError } = await supabase
+        console.log('Falling back to manual update');
+        
+        const newLikeCount = currentLikeCount + 1;
+        console.log('Manually updating like count to:', newLikeCount);
+        
+        // UPDATEを実行（.single()なし）
+        const { error: updateResponseError } = await supabase
           .from('prompts')
           .update({ like_count: newLikeCount })
           .eq('id', prompt.id);
         
-        if (manualUpdateError) {
-          console.error('Error manually updating like_count:', manualUpdateError);
+        console.log('Update query error:', updateResponseError);
+        
+        if (updateResponseError) {
+          console.error('Error updating like_count:', updateResponseError);
+          likeCount = currentLikeCount + 1;
+        } else {
+          // 更新後の値を取得
+          const { data: updatedPrompt } = await supabase
+            .from('prompts')
+            .select('like_count')
+            .eq('id', prompt.id)
+            .single();
+          
+          console.log('Updated prompt from DB:', updatedPrompt?.like_count);
+          const updatedCount = updatedPrompt?.like_count ?? (currentLikeCount + 1);
+          console.log('Manual update successful, using count:', updatedCount);
+          likeCount = updatedCount;
         }
-
-        likeCount = newLikeCount;
       } else {
-        // RPCが成功した場合もいいね数を取得
-        const { data: updatedPrompt } = await supabase
-          .from('prompts')
-          .select('like_count')
-          .eq('id', prompt.id)
-          .single();
-        likeCount = updatedPrompt?.like_count || 0;
+        console.log('RPC increment_like_count successful');
+        // RPC関数が成功したので、計算値を使用
+        likeCount = currentLikeCount + 1;
+        console.log('Calculated like count after RPC:', likeCount);
       }
 
       isLiked = true;
     }
 
-    // 最終的ないいね数を取得
-    const { data: finalPrompt, error: finalError } = await supabase
-      .from('prompts')
-      .select('like_count')
-      .eq('id', prompt.id)
-      .single();
-
-    if (finalError) {
-      console.error('Error fetching final like count:', finalError);
-    }
-
-    const finalLikeCount = finalPrompt?.like_count || likeCount;
-
+    // 計算された値をそのまま使用（データベースに再アクセスしない）
     console.log('Like operation completed:', {
       isLiked,
-      likeCount: finalLikeCount,
+      likeCount: likeCount,
       promptId: prompt.id
     });
 
     return NextResponse.json({
       success: true,
       isLiked,
-      likeCount: finalLikeCount,
+      likeCount: likeCount,  // 計算された値を使用
     });
   } catch (error) {
     console.error('Error in POST /api/prompts/[slug]/like:', error);

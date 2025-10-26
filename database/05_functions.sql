@@ -405,9 +405,14 @@ CREATE OR REPLACE FUNCTION increment_like_count(prompt_id uuid)
 RETURNS void AS $$
 BEGIN
     UPDATE public.prompts
-    SET like_count = like_count + 1,
+    SET 
+        like_count = COALESCE(like_count, 0) + 1,
         updated_at = now()
     WHERE id = prompt_id;
+    
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'No rows updated for prompt_id: %', prompt_id;
+    END IF;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -416,8 +421,13 @@ CREATE OR REPLACE FUNCTION decrement_like_count(prompt_id uuid)
 RETURNS void AS $$
 BEGIN
     UPDATE public.prompts
-    SET like_count = GREATEST(like_count - 1, 0),
+    SET 
+        like_count = GREATEST(COALESCE(like_count, 0) - 1, 0),
         updated_at = now()
     WHERE id = prompt_id;
+    
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'No rows updated for prompt_id: %', prompt_id;
+    END IF;
 END;
 $$ LANGUAGE plpgsql;
