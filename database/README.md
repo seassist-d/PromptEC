@@ -9,7 +9,7 @@
 ```
 database/
 ├── 00_main_execution.sql      # メイン実行ファイル（確認用クエリ含む）
-├── 01_enums.sql              # Enum型の定義
+├── 01_enums_fixed.sql        # Enum型の定義
 ├── 02_tables.sql             # テーブルの作成
 ├── 03_indexes.sql            # インデックスの作成
 ├── 04_rls_policies.sql       # RLSポリシーの設定
@@ -18,6 +18,7 @@ database/
 ├── 07_seed_data.sql          # 初期データの投入
 ├── 08_japanese_search_optional.sql # 日本語検索の高度な設定（オプション）
 ├── 09_maintenance_functions.sql # メンテナンス用関数（破壊的操作を含む）
+├── 10_storage_rls.sql        # Storage RLSポリシーの設定
 └── README.md                 # このファイル
 ```
 
@@ -97,6 +98,24 @@ DROP TABLE IF EXISTS public.user_profiles CASCADE;
 -- 09_maintenance_functions.sql の内容をコピー&ペーストして実行
 -- 注意: このファイルには破壊的な操作（DELETE等）が含まれています
 -- 実行前にデータのバックアップを取ることを強く推奨します
+```
+
+#### Step 10: Storage RLSポリシーの設定（必須）
+```sql
+-- 10_storage_rls.sql の内容をコピー&ペーストして実行
+-- 注意: このステップはアバター画像のアップロード機能に必要です
+```
+
+**重要**: Storage RLSポリシーを設定する前に、以下のStorageバケットが作成されていることを確認してください：
+
+```sql
+-- Supabase SQL Editorで実行
+-- Storageバケットを作成
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('avatars', 'avatars', true),
+       ('prompts-thumbnails', 'prompts-thumbnails', true),
+       ('prompt-assets', 'prompt-assets', true)
+ON CONFLICT (id) DO NOTHING;
 ```
 
 ### 3. 実行確認

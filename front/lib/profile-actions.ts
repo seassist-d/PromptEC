@@ -22,15 +22,21 @@ export async function updateProfile(formData: ProfileFormData): Promise<ProfileU
     let avatarUrl = '';
     if (formData.avatar) {
       const fileExt = formData.avatar.name.split('.').pop();
-      const fileName = `${authUser.id}-${Date.now()}.${fileExt}`;
-      const filePath = `avatars/${fileName}`;
+      const timestamp = Date.now();
+      const random = Math.random().toString(36).substring(2, 9);
+      const fileName = `${authUser.id}-${timestamp}-${random}.${fileExt}`;
+      const filePath = `${authUser.id}/${fileName}`;
 
       // Supabase Storageにアップロード
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(filePath, formData.avatar);
+        .upload(filePath, formData.avatar, {
+          cacheControl: '3600',
+          upsert: true  // 既存ファイルを上書き
+        });
 
       if (uploadError) {
+        console.error('Avatar upload error:', uploadError);
         return {
           success: false,
           message: '画像のアップロードに失敗しました',
