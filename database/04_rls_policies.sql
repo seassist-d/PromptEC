@@ -11,7 +11,9 @@ DROP POLICY IF EXISTS "Only admins can view audit logs" ON public.audit_logs;
 DROP POLICY IF EXISTS "Only admins can insert ranking snapshots" ON public.ranking_snapshots;
 DROP POLICY IF EXISTS "Ranking snapshots are viewable by everyone" ON public.ranking_snapshots;
 DROP POLICY IF EXISTS "Public auto tags are viewable by everyone" ON public.auto_tags;
-DROP POLICY IF EXISTS "Only admins can view recommendation events" ON public.recommendation_events;
+DROP POLICY IF EXISTS "Only admins can view all recommendation events" ON public.recommendation_events;
+DROP POLICY IF EXISTS "Users can delete their own likes" ON public.recommendation_events;
+DROP POLICY IF EXISTS "Users can view their own likes" ON public.recommendation_events;
 DROP POLICY IF EXISTS "Anyone can insert recommendation events" ON public.recommendation_events;
 DROP POLICY IF EXISTS "Public previews are viewable by everyone" ON public.preview_cache;
 DROP POLICY IF EXISTS "Only admins can manage AI jobs" ON public.ai_jobs;
@@ -507,8 +509,16 @@ CREATE POLICY "Public previews are viewable by everyone" ON public.preview_cache
 CREATE POLICY "Anyone can insert recommendation events" ON public.recommendation_events
   FOR INSERT WITH CHECK (true);
 
--- 管理者のみ推薦イベントを閲覧可能
-CREATE POLICY "Only admins can view recommendation events" ON public.recommendation_events
+-- ユーザーは自分のいいねを閲覧・削除可能
+CREATE POLICY "Users can view their own likes" ON public.recommendation_events
+  FOR SELECT USING (auth.uid() = user_id AND event_type = 'like');
+
+-- ユーザーは自分のいいねを削除可能
+CREATE POLICY "Users can delete their own likes" ON public.recommendation_events
+  FOR DELETE USING (auth.uid() = user_id AND event_type = 'like');
+
+-- 管理者のみ全推薦イベントを閲覧可能
+CREATE POLICY "Only admins can view all recommendation events" ON public.recommendation_events
   FOR SELECT USING (
     EXISTS (
       SELECT 1 FROM public.user_profiles 
