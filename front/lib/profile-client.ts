@@ -3,6 +3,47 @@
 import { supabase } from './supabaseClient';
 import type { ProfileFormData, User } from '../types/auth';
 
+export async function deleteAvatarClient(userId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    // ユーザーの既存アバターファイルを取得
+    const { data: files, error: listError } = await supabase.storage
+      .from('avatars')
+      .list(`${userId}/`);
+
+    if (listError) {
+      console.error('Failed to list avatar files:', listError);
+      return {
+        success: false,
+        error: 'アバター画像の削除に失敗しました'
+      };
+    }
+
+    // 全てのアバターファイルを削除
+    if (files && files.length > 0) {
+      const filePaths = files.map(file => `${userId}/${file.name}`);
+      const { error: deleteError } = await supabase.storage
+        .from('avatars')
+        .remove(filePaths);
+
+      if (deleteError) {
+        console.error('Failed to delete avatar files:', deleteError);
+        return {
+          success: false,
+          error: 'アバター画像の削除に失敗しました'
+        };
+      }
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Delete avatar error:', error);
+    return {
+      success: false,
+      error: '予期しないエラーが発生しました'
+    };
+  }
+}
+
 export async function updateProfileClient(formData: ProfileFormData): Promise<{ success: boolean; user?: User; error?: string }> {
   try {
     // 現在のユーザーを取得
@@ -15,9 +56,17 @@ export async function updateProfileClient(formData: ProfileFormData): Promise<{ 
       };
     }
 
-    // アバター画像のアップロード処理
-    let avatarUrl = '';
-    if (formData.avatar) {
+    // アバター削除が指定されている場合
+    let avatarUrl: string | null = null;
+    if (formData.avatar === null) {
+      // 削除を指定された場合
+      await deleteAvatarClient(authUser.id);
+      avatarUrl = null;
+    } else if (formData.avatar && formData.avatar instanceof File) {
+      // 新しい画像をアップロードする場合
+      // 既存のアバターを削除
+      await deleteAvatarClient(authUser.id);
+      
       const fileExt = formData.avatar.name.split('.').pop();
       const timestamp = Date.now();
       const random = Math.random().toString(36).substring(2, 9);
@@ -56,19 +105,25 @@ export async function updateProfileClient(formData: ProfileFormData): Promise<{ 
       updated_at: new Date().toISOString()
     };
 
-    // アバターがアップロードされた場合のみ更新
-    if (avatarUrl) {
+    // avatarUrlが明示的に指定された場合のみ更新（削除の場合はnullを設定）
+    if (formData.avatar === null || formData.avatar instanceof File) {
       updateData.avatar_url = avatarUrl;
     }
 
     // データベース関数を使用してプロフィールを更新
+    // avatarUrlがnullの場合（削除）は明示的にnullを渡す
+    // avatarUrlが文字列の場合（アップロード）は文字列を渡す
+    // avatarUrlがnullでもundefinedでもない場合（未変更）は'NOT_SET'を渡す
+    const avatarUrlParam = formData.avatar === null ? null : 
+                          avatarUrl !== null ? avatarUrl : 'NOT_SET';
+    
     const { data: functionResult, error: functionError } = await supabase
       .rpc('update_user_profile', {
         p_user_id: authUser.id,
         p_display_name: formData.display_name,
         p_bio: formData.bio,
         p_contact: formData.contact,
-        p_avatar_url: avatarUrl || null
+        p_avatar_url: avatarUrlParam
       });
 
     if (functionError) {

@@ -104,7 +104,13 @@ export const useCartStore = create<CartState>()(
 
       // Remove item from cart
       removeItem: async (itemId: string) => {
-        set({ isLoading: true, error: null });
+        // 楽観的更新: 即座にローカルから削除
+        const previousItems = get().items;
+        set((state) => ({
+          items: state.items.filter(item => item.id !== itemId),
+          isLoading: true,
+          error: null,
+        }));
         
         try {
           const response = await fetch(`/api/cart?itemId=${itemId}`, {
@@ -115,19 +121,23 @@ export const useCartStore = create<CartState>()(
           });
 
           if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'カートからの削除に失敗しました');
+            // エラー時は元の状態に戻す
+            set({
+              items: previousItems,
+              isLoading: false,
+              error: 'カートからの削除に失敗しました',
+            });
+            throw new Error('カートからの削除に失敗しました');
           }
 
-          // カートを再読み込み
-          await get().loadCart();
-          
+          // 成功時は楽観的更新を維持
           set({ isLoading: false, error: null });
         } catch (error) {
           console.error('カート削除エラー:', error);
+          // エラー時は元の状態を保持（既にロールバック済み）
           set({
-            error: error instanceof Error ? error.message : 'カートからの削除に失敗しました',
             isLoading: false,
+            error: error instanceof Error ? error.message : 'カートからの削除に失敗しました',
           });
         }
       },

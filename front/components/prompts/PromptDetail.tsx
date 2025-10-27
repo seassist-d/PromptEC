@@ -169,7 +169,7 @@ export default function PromptDetail({ slug }: PromptDetailProps) {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
       {/* パンくずリスト */}
       <nav className="mb-6">
         <ol className="flex items-center space-x-2 text-sm text-gray-500">
@@ -222,12 +222,12 @@ export default function PromptDetail({ slug }: PromptDetailProps) {
           </div>
 
           {/* タイトル */}
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
             {prompt.title}
           </h1>
 
           {/* 価格 */}
-          <div className="text-3xl font-bold text-blue-600">
+          <div className="text-2xl sm:text-3xl font-bold text-blue-600">
             {formatPrice(prompt.price_jpy)}
           </div>
 
@@ -316,7 +316,7 @@ export default function PromptDetail({ slug }: PromptDetailProps) {
         <div className="space-y-6">
           {/* 説明 */}
           <div>
-            <h2 className="text-xl font-bold text-gray-900 mb-4">説明</h2>
+            <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">説明</h2>
             <div className="prose max-w-none">
               <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
                 {prompt.long_description || prompt.short_description}
@@ -339,7 +339,7 @@ export default function PromptDetail({ slug }: PromptDetailProps) {
           {/* レビュー */}
           {prompt.reviews && prompt.reviews.length > 0 && (
             <div>
-              <h2 className="text-xl font-bold text-gray-900 mb-4">レビュー</h2>
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">レビュー</h2>
               <div className="space-y-4">
                 {prompt.reviews.map((review) => (
                   <div key={review.id} className="bg-white p-4 rounded-lg border">
@@ -385,16 +385,16 @@ export default function PromptDetail({ slug }: PromptDetailProps) {
 
       {/* 関連プロンプト */}
       {prompt.related_prompts && prompt.related_prompts.length > 0 && (
-        <div className="mt-12">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">関連プロンプト</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="mt-8 sm:mt-12">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">関連プロンプト</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             {prompt.related_prompts.map((related) => (
               <Link
                 key={related.id}
                 href={`/prompts/${related.slug}`}
                 className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
               >
-                <div className="p-4">
+                <div className="p-3 sm:p-4">
                   <div className="aspect-video bg-gradient-to-br from-blue-400 to-purple-500 rounded mb-3 overflow-hidden">
                     {related.thumbnail_url ? (
                       <img

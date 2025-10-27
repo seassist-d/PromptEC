@@ -100,9 +100,10 @@ export default function ProfileDisplay({ user, showEditButton = true }: ProfileD
             <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
               {user.avatar_url ? (
                 <img 
-                  src={user.avatar_url} 
+                  src={`${user.avatar_url}?t=${new Date(user.updated_at).getTime()}`}
                   alt="アバター" 
                   className="w-full h-full object-cover"
+                  key={`avatar-${user.id}-${user.updated_at}`}
                 />
               ) : (
                 <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

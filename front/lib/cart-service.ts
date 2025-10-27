@@ -8,6 +8,7 @@ export interface CartItem {
   created_at: string;
   prompts: {
     id: string;
+    slug: string;
     title: string;
     thumbnail_url?: string;
     price_jpy: number;

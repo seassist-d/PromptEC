@@ -3,18 +3,20 @@
 -- =============================================
 
 -- 既存の関数を安全に削除
-DROP FUNCTION IF EXISTS get_admin_dashboard_stats();
-DROP FUNCTION IF EXISTS update_prompt_popularity();
-DROP FUNCTION IF EXISTS get_sales_statistics(uuid, date, date);
-DROP FUNCTION IF EXISTS check_download_permission(uuid, uuid);
-DROP FUNCTION IF EXISTS search_prompts(text, bigint, integer, integer, text, text, integer, integer);
-DROP FUNCTION IF EXISTS generate_prompt_slug(text);
-DROP FUNCTION IF EXISTS update_seller_balance();
-DROP FUNCTION IF EXISTS calculate_seller_balance(uuid);
-DROP FUNCTION IF EXISTS update_prompt_stats();
-DROP FUNCTION IF EXISTS generate_order_number();
-DROP FUNCTION IF EXISTS increment_like_count(uuid);
-DROP FUNCTION IF EXISTS decrement_like_count(uuid);
+-- CASCADEを追加して依存するトリガーも自動削除
+DROP FUNCTION IF EXISTS get_admin_dashboard_stats() CASCADE;
+DROP FUNCTION IF EXISTS update_prompt_popularity() CASCADE;
+DROP FUNCTION IF EXISTS get_sales_statistics(uuid, date, date) CASCADE;
+DROP FUNCTION IF EXISTS check_download_permission(uuid, uuid) CASCADE;
+DROP FUNCTION IF EXISTS search_prompts(text, bigint, integer, integer, text, text, integer, integer) CASCADE;
+DROP FUNCTION IF EXISTS generate_prompt_slug(text) CASCADE;
+DROP FUNCTION IF EXISTS update_seller_balance() CASCADE;
+DROP FUNCTION IF EXISTS calculate_seller_balance(uuid) CASCADE;
+DROP FUNCTION IF EXISTS update_prompt_stats() CASCADE;
+DROP FUNCTION IF EXISTS generate_order_number() CASCADE;
+DROP FUNCTION IF EXISTS increment_like_count(uuid) CASCADE;
+DROP FUNCTION IF EXISTS decrement_like_count(uuid) CASCADE;
+DROP FUNCTION IF EXISTS update_user_profile(uuid, text, text, jsonb, text) CASCADE;
 
 -- 注文番号生成関数
 CREATE OR REPLACE FUNCTION generate_order_number()
@@ -311,10 +313,10 @@ $$ LANGUAGE plpgsql;
 -- プロフィール更新専用関数
 CREATE OR REPLACE FUNCTION update_user_profile(
     p_user_id uuid,
-    p_display_name text DEFAULT NULL,
-    p_bio text DEFAULT NULL,
+    p_display_name text DEFAULT 'NOT_SET',
+    p_bio text DEFAULT 'NOT_SET',
     p_contact jsonb DEFAULT NULL,
-    p_avatar_url text DEFAULT NULL
+    p_avatar_url text DEFAULT 'NOT_SET'
 )
 RETURNS TABLE(
     success boolean,
@@ -339,10 +341,10 @@ BEGIN
             updated_at
         ) VALUES (
             p_user_id,
-            COALESCE(p_display_name, 'ユーザー'),
-            p_bio,
+            CASE WHEN p_display_name = 'NOT_SET' OR p_display_name IS NULL THEN 'ユーザー' ELSE p_display_name END,
+            CASE WHEN p_bio = 'NOT_SET' THEN NULL ELSE p_bio END,
             COALESCE(p_contact, '{}'),
-            p_avatar_url,
+            CASE WHEN p_avatar_url = 'NOT_SET' THEN NULL ELSE p_avatar_url END,
             'user',
             false,
             now(),
@@ -352,10 +354,10 @@ BEGIN
         -- プロフィールが存在する場合は更新
         UPDATE public.user_profiles
         SET 
-            display_name = COALESCE(p_display_name, display_name),
-            bio = COALESCE(p_bio, bio),
-            contact = COALESCE(p_contact, contact),
-            avatar_url = COALESCE(p_avatar_url, avatar_url),
+            display_name = CASE WHEN p_display_name IS NOT NULL AND p_display_name != 'NOT_SET' THEN p_display_name ELSE display_name END,
+            bio = CASE WHEN p_bio IS NOT NULL AND p_bio != 'NOT_SET' THEN p_bio ELSE bio END,
+            contact = CASE WHEN p_contact IS NOT NULL THEN p_contact ELSE contact END,
+            avatar_url = CASE WHEN p_avatar_url IS DISTINCT FROM 'NOT_SET' THEN p_avatar_url ELSE avatar_url END,
             updated_at = now()
         WHERE user_id = p_user_id;
     END IF;

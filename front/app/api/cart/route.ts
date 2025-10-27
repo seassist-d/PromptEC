@@ -33,6 +33,7 @@ export async function GET(request: NextRequest) {
             created_at,
             prompts (
               id,
+              slug,
               title,
               thumbnail_url,
               price_jpy
@@ -71,6 +72,7 @@ export async function GET(request: NextRequest) {
             created_at,
             prompts (
               id,
+              slug,
               title,
               thumbnail_url,
               price_jpy

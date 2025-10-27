@@ -86,7 +86,7 @@ export interface ProfileFormData {
     github?: string;
     linkedin?: string;
   };
-  avatar?: File;
+  avatar?: File | null;
 }
 
 export interface ProfileUpdateResult extends ServerActionResult {

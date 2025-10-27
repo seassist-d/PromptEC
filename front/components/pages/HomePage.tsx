@@ -91,12 +91,12 @@ export default function HomePage() {
     <div className="min-h-screen bg-gray-50">
       {/* ヒーローセクション */}
       <section className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-24">
           <div className="text-center">
-            <h1 className="text-4xl md:text-6xl font-bold mb-6">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 sm:mb-6">
               プロンプトを売買しよう
             </h1>
-            <p className="text-xl md:text-2xl mb-8 text-blue-100">
+            <p className="text-lg sm:text-xl md:text-2xl mb-6 sm:mb-8 text-blue-100">
               AIプロンプトのマーケットプレイスで、高品質なプロンプトを購入・販売
             </p>
             
@@ -137,7 +137,7 @@ export default function HomePage() {
               ) : (
                 <Link
                   href="/auth/register"
-                  className="inline-block border-2 border-white text-white px-8 py-3 rounded-lg text-lg font-semibold backdrop-blur-sm bg-white/10 hover:bg-white hover:text-blue-600 transition-all hover:scale-105 active:scale-95 shadow-lg animate-pulse-glow"
+                  className="inline-block border-2 border-white text-white px-6 py-2 sm:px-8 sm:py-3 rounded-lg text-base sm:text-lg font-semibold backdrop-blur-sm bg-white/10 hover:bg-white hover:text-blue-600 transition-all hover:scale-105 active:scale-95 shadow-lg animate-pulse-glow"
                 >
                   無料で始める
                 </Link>
@@ -148,12 +148,12 @@ export default function HomePage() {
       </section>
 
       {/* 特集エリア - 人気プロンプト */}
-      <section className="py-16">
+      <section className="py-8 sm:py-12 lg:py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">
+          <h2 className="text-2xl sm:text-3xl font-bold text-center text-gray-900 mb-8 sm:mb-12">
             人気のプロンプト
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {loadingPrompts ? (
               // ローディング状態 - スケルトンカードを使用
               Array.from({ length: 6 }).map((_, index) => (
@@ -262,9 +262,9 @@ export default function HomePage() {
       </section>
 
       {/* カテゴリ一覧 */}
-      <section className="py-16 bg-white">
+      <section className="py-8 sm:py-12 lg:py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">
+          <h2 className="text-2xl sm:text-3xl font-bold text-center text-grayख्या mb-8 sm:mb-12">
             カテゴリから探す
           </h2>
           {loading ? (
@@ -298,7 +298,7 @@ export default function HomePage() {
       </section>
 
       {/* CTA セクション */}
-      <section className="py-16 bg-blue-600">
+      <section className="py-8 sm:py-12 lg:py-16 bg-blue-600">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl font-bold text-white mb-4">
             今すぐPromptECを始めよう

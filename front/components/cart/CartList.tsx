@@ -3,23 +3,25 @@
 import { useState } from 'react';
 import { useCart } from '@/hooks/useCart';
 import CartItemComponent from './CartItem';
+import { AnimatePresence, motion } from 'framer-motion';
 
 export default function CartList() {
   const { items, removeFromCart, isLoading, error } = useCart();
   const [removingItems, setRemovingItems] = useState<Set<string>>(new Set());
 
   const handleRemoveItem = async (itemId: string) => {
+    // 楽観的UI更新: 即座にUIから削除
     setRemovingItems(prev => new Set(prev).add(itemId));
     
     try {
       const result = await removeFromCart(itemId);
       if (!result.success) {
         console.error('削除エラー:', result.error);
-        // エラーハンドリング（トースト通知など）
       }
     } catch (error) {
       console.error('削除エラー:', error);
     } finally {
+      // 削除完了後は要素を完全に削除
       setRemovingItems(prev => {
         const newSet = new Set(prev);
         newSet.delete(itemId);
@@ -69,47 +71,54 @@ export default function CartList() {
 
   if (items.length === 0) {
     return (
-      <div className="text-center py-12">
-        <div className="text-gray-400 mb-4">
-          <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l-1 12H6l-1-12z" />
-          </svg>
-        </div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">カートが空です</h3>
-        <p className="text-gray-600 mb-6">お気に入りのプロンプトをカートに追加してください</p>
+      <div className="text-center py-16">
+        <svg className="w-20 h-20 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l-1 12H6l-1-12z" />
+        </svg>
+        <h3 className="text-xl font-semibold text-gray-700 mb-3">カートが空です</h3>
+        <p className="text-sm mb-4 text-gray-500">プロンプトを探してカートに追加しましょう</p>
         <a
           href="/search"
-          className="inline-flex items-center bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+          className="inline-flex items-center bg-blue-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition-colors text-sm"
         >
-          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
           プロンプトを探す
         </a>
       </div>
     );
   }
 
+  // フィルタリング: removingItemsに含まれるアイテムは表示しない（楽観的更新）
+  const visibleItems = items.filter(item => !removingItems.has(item.id));
+
   return (
-    <div className="space-y-4">
-      {items.map((item) => (
-        <CartItemComponent
-          key={item.id}
-          item={item}
-          onRemove={handleRemoveItem}
-        />
-      ))}
-      
-      {isLoading && (
-        <div className="text-center py-4">
-          <div className="inline-flex items-center text-blue-600">
-            <svg className="w-5 h-5 mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            更新中...
+    <AnimatePresence mode="popLayout">
+      <div className="space-y-3 sm:space-y-4">
+        {visibleItems.map((item) => (
+          <motion.div
+            key={item.id}
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, x: -100, scale: 0.8 }}
+            transition={{ duration: 0.2 }}
+          >
+            <CartItemComponent
+              item={item}
+              onRemove={handleRemoveItem}
+            />
+          </motion.div>
+        ))}
+        
+        {isLoading && (
+          <div className="text-center py-4">
+            <div className="inline-flex items-center text-blue-600">
+              <svg className="w-5 h-5 mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              更新中...
+            </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </AnimatePresence>
   );
 }

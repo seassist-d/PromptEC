@@ -128,28 +128,86 @@ export default function SearchResults({
 
   const totalPages = Math.ceil(totalCount / 20);
 
+  // フィルター条件を取得
+  const getActiveFilters = () => {
+    const activeFilters: Array<{ key: string; label: string; value: string }> = [];
+    
+    if (filters.query) {
+      activeFilters.push({ key: 'query', label: 'キーワード', value: filters.query });
+    }
+    
+    if (filters.category) {
+      // カテゴリ名はここでは簡易的にIDを表示（実際の実装ではカテゴリ名を取得）
+      activeFilters.push({ key: 'category', label: 'カテゴリ', value: filters.category });
+    }
+    
+    if (filters.minPrice !== null || filters.maxPrice !== null) {
+      let priceRange = '';
+      if (filters.minPrice !== null && filters.maxPrice !== null) {
+        priceRange = `${filters.minPrice}円 - ${filters.maxPrice}円`;
+      } else if (filters.minPrice !== null) {
+        priceRange = `${filters.minPrice}円以上`;
+      } else if (filters.maxPrice !== null) {
+        priceRange = `${filters.maxPrice}円以下`;
+      }
+      activeFilters.push({ key: 'price', label: '価格', value: priceRange });
+    }
+    
+    if (filters.sortBy !== 'created_at') {
+      const sortLabels: Record<string, string> = {
+        price: '価格順',
+        rating: '評価順',
+        views: '人気順',
+      };
+      activeFilters.push({ key: 'sort', label: 'ソート', value: sortLabels[filters.sortBy] || filters.sortBy });
+    }
+    
+    return activeFilters;
+  };
+
+  const activeFilters = getActiveFilters();
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* 検索結果ヘッダー */}
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">
-            {totalCount}件のプロンプトが見つかりました
-          </h2>
-          {filters.query && (
-            <p className="text-base text-gray-600 mt-2">
-              「{filters.query}」の検索結果
-            </p>
-          )}
+      <div className="mb-4 sm:mb-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-3">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+              {totalCount}件のプロンプトが見つかりました
+            </h2>
+            {filters.query && (
+              <p className="text-sm sm:text-base text-gray-600 mt-2">
+                「{filters.query}」の検索結果
+              </p>
+            )}
+          </div>
+          
+          <div className="text-xs sm:text-sm font-medium text-gray-500">
+            {currentPage} / {totalPages} ページ
+          </div>
         </div>
         
-        <div className="text-sm font-medium text-gray-500">
-          {currentPage} / {totalPages} ページ
-        </div>
+        {/* フィルター条件の視覚化 */}
+        {activeFilters.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-medium text-gray-700">適用中のフィルター:</span>
+            {activeFilters.map((filter) => (
+              <span
+                key={filter.key}
+                className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 border border-blue-200"
+              >
+                <span className="mr-1">{filter.label}:</span>
+                <span className="font-semibold">{filter.value}</span>
+              </span>
+            ))}
+            <span className="text-xs text-gray-500">({activeFilters.length}件の条件)</span>
+          </div>
+        )}
       </div>
 
       {/* プロンプト一覧 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         {results.map((prompt) => (
           <Link
             key={prompt.id}
@@ -168,9 +226,9 @@ export default function SearchResults({
               </div>
             </div>
 
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               {/* サムネイル */}
-              <div className="relative aspect-video bg-gradient-to-br from-blue-400 via-purple-500 to-pink-500 rounded-xl mb-4 overflow-hidden">
+              <div className="relative aspect-video bg-gradient-to-br from-blue-400 via-purple-500 to-pink-500 rounded-lg sm:rounded-xl mb-3 sm:mb-4 overflow-hidden">
                 {prompt.thumbnail_url ? (
                   <img
                     src={prompt.thumbnail_url}
@@ -194,13 +252,13 @@ export default function SearchResults({
               </div>
 
               {/* タイトル */}
-              <h3 className="text-lg font-bold text-gray-900 mb-3 line-clamp-2 group-hover:text-blue-600 transition-colors">
+              <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-2 sm:mb-3 line-clamp-2 group-hover:text-blue-600 transition-colors">
                 {prompt.title}
               </h3>
 
               {/* 説明 */}
               {prompt.short_description && (
-                <p className="text-sm text-gray-600 mb-4 line-clamp-2 leading-relaxed">
+                <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4 line-clamp-2 leading-relaxed">
                   {prompt.short_description}
                 </p>
               )}
