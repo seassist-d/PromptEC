@@ -26,11 +26,11 @@ export async function PUT(
 
     const { reason } = await request.json();
 
-    // ユーザーをBAN
+    // BAN解除
     const { error } = await supabase
       .from('user_profiles')
       .update({ 
-        is_banned: true,
+        is_banned: false,
         updated_at: new Date().toISOString()
       })
       .eq('user_id', params.userId);
@@ -40,23 +40,22 @@ export async function PUT(
     // 管理者アクションを記録
     await supabase.from('admin_actions').insert({
       actor_id: user.id,
-      action: 'user_ban',
+      action: 'user_unban',
       target_type: 'user',
       target_id: params.userId,
-      reason: reason || '管理者によるBAN',
+      reason: reason || '管理者によるBAN解除',
       metadata: {
-        banned_at: new Date().toISOString()
+        unbanned_at: new Date().toISOString()
       }
     });
 
-    return NextResponse.json({ message: 'ユーザーをBANしました' });
+    return NextResponse.json({ message: 'BANを解除しました' });
 
   } catch (error: any) {
-    console.error('Ban user error:', error);
+    console.error('Unban user error:', error);
     return NextResponse.json(
-      { error: error.message || 'ユーザーBANに失敗しました' },
+      { error: error.message || 'BAN解除に失敗しました' },
       { status: 500 }
     );
   }
 }
-

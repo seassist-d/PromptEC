@@ -21,14 +21,47 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: '管理者権限がありません' }, { status: 403 });
     }
 
+    // クエリパラメータ取得
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
     const offset = (page - 1) * limit;
+    
+    // フィルタリング
+    const role = searchParams.get('role');
+    const isBanned = searchParams.get('is_banned');
+    const search = searchParams.get('search');
 
-    const { data, error, count } = await supabase
+    let query = supabase
       .from('user_profiles')
-      .select('*', { count: 'exact' })
+      .select(`
+        user_id,
+        display_name,
+        role,
+        is_banned,
+        bio,
+        contact,
+        created_at,
+        updated_at
+      `, { count: 'exact' });
+
+    // ロールフィルタ
+    if (role && role !== 'all') {
+      query = query.eq('role', role);
+    }
+
+    // BAN状態フィルタ
+    if (isBanned && isBanned !== 'all') {
+      query = query.eq('is_banned', isBanned === 'true');
+    }
+
+    // 検索フィルタ（表示名）
+    if (search) {
+      query = query.or(`display_name.ilike.%${search}%`);
+    }
+
+    // 並び替えとページネーション
+    const { data, error, count } = await query
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
@@ -36,9 +69,12 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       users: data,
-      total: count,
-      page,
-      limit
+      pagination: {
+        total: count || 0,
+        page,
+        limit,
+        totalPages: Math.ceil((count || 0) / limit)
+      }
     });
 
   } catch (error: any) {

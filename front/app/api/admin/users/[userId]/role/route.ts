@@ -24,39 +24,58 @@ export async function PUT(
       return NextResponse.json({ error: '管理者権限がありません' }, { status: 403 });
     }
 
-    const { reason } = await request.json();
+    const { newRole, reason } = await request.json();
 
-    // ユーザーをBAN
-    const { error } = await supabase
+    if (!newRole || !['user', 'seller', 'admin'].includes(newRole)) {
+      return NextResponse.json({ error: '無効なロールです' }, { status: 400 });
+    }
+
+    // 現在のロールを取得
+    const { data: targetUser } = await supabase
+      .from('user_profiles')
+      .select('role')
+      .eq('user_id', params.userId)
+      .single();
+
+    if (!targetUser) {
+      return NextResponse.json({ error: 'ユーザーが見つかりません' }, { status: 404 });
+    }
+
+    // ロール変更
+    const { error: updateError } = await supabase
       .from('user_profiles')
       .update({ 
-        is_banned: true,
+        role: newRole,
         updated_at: new Date().toISOString()
       })
       .eq('user_id', params.userId);
 
-    if (error) throw error;
+    if (updateError) throw updateError;
 
     // 管理者アクションを記録
     await supabase.from('admin_actions').insert({
       actor_id: user.id,
-      action: 'user_ban',
+      action: 'role_change',
       target_type: 'user',
       target_id: params.userId,
-      reason: reason || '管理者によるBAN',
+      reason: reason || '管理者によるロール変更',
       metadata: {
-        banned_at: new Date().toISOString()
+        from_role: targetUser.role,
+        to_role: newRole,
+        changed_at: new Date().toISOString()
       }
     });
 
-    return NextResponse.json({ message: 'ユーザーをBANしました' });
+    return NextResponse.json({ 
+      message: 'ロールを変更しました',
+      newRole 
+    });
 
   } catch (error: any) {
-    console.error('Ban user error:', error);
+    console.error('Role change error:', error);
     return NextResponse.json(
-      { error: error.message || 'ユーザーBANに失敗しました' },
+      { error: error.message || 'ロール変更に失敗しました' },
       { status: 500 }
     );
   }
 }
-

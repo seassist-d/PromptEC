@@ -99,6 +99,14 @@ export default function AdminDashboardPage() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <Link href="/" className="inline-flex items-center text-gray-600 hover:text-gray-900 transition-colors">
+              <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
+              トップページに戻る
+            </Link>
+          </div>
           <h1 className="text-3xl font-bold text-gray-900">管理者ダッシュボード</h1>
           <p className="mt-2 text-sm text-gray-600">サイト全体の統計と管理</p>
         </div>
