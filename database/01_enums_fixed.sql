@@ -36,7 +36,7 @@ CREATE TYPE user_role AS ENUM ('user', 'seller', 'admin');
 CREATE TYPE visibility AS ENUM ('public', 'unlisted', 'private');
 
 -- プロンプトステータス
-CREATE TYPE prompt_status AS ENUM ('draft', 'published', 'suspended', 'deleted');
+CREATE TYPE prompt_status AS ENUM ('draft', 'pending', 'published', 'suspended', 'deleted');
 
 -- 注文ステータス
 CREATE TYPE order_status AS ENUM ('pending', 'paid', 'failed', 'cancelled', 'refunded');
@@ -78,7 +78,7 @@ CREATE TYPE moderation_result AS ENUM ('pass', 'flag', 'reject');
 CREATE TYPE moderation_method AS ENUM ('ai_sdk', 'manual');
 
 -- 管理者アクション
-CREATE TYPE admin_action AS ENUM ('user_ban', 'user_unban', 'prompt_remove', 'review_remove', 'refund', 'other');
+CREATE TYPE admin_action AS ENUM ('user_ban', 'user_unban', 'prompt_approve', 'prompt_remove', 'prompt_suspend', 'review_remove', 'refund', 'other');
 
 -- プレビュータイプ
 CREATE TYPE preview_type AS ENUM ('head_lines', 'truncated_output', 'masked_text');

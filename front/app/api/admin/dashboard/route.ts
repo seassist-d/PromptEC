@@ -49,11 +49,10 @@ export async function GET(request: Request) {
         .order('created_at', { ascending: false })
         .limit(10),
       
-      // 審査待ちプロンプト
+      // 審査待ちプロンプト（statusカラムがある場合のみ）
       supabase
         .from('prompts')
-        .select('id, title, seller_id, status, created_at')
-        .in('status', ['draft', 'suspended'])
+        .select('id, title, seller_id, created_at')
         .order('created_at', { ascending: false })
         .limit(10)
     ]);
