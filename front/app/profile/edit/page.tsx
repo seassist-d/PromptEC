@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import toast from 'react-hot-toast';
 import Header from '@/components/layout/SimpleHeader';
 import Footer from '@/components/layout/Footer';
 import { useAuth } from '../../../lib/useAuth';
@@ -14,6 +15,7 @@ import type { User } from '../../../types/auth';
 export default function ProfileEditPage() {
   const { user: authUser, loading: authLoading } = useAuth();
   const [user, setUser] = useState<User | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const router = useRouter();
@@ -56,10 +58,23 @@ export default function ProfileEditPage() {
     loadProfile();
   }, [authUser, authLoading, router]);
 
-  const handleSuccess = (updatedUser: User) => {
-    setUser(updatedUser);
-    // 成功メッセージを表示（必要に応じて）
-    alert('プロフィールを更新しました');
+  const handleSuccess = async (updatedUser: User) => {
+    // プロフィール情報を再取得して確実に最新の状態を取得
+    try {
+      const result = await getProfileClient();
+      if (result.success && result.user) {
+        setUser(result.user);
+      } else {
+        // 再取得に失敗した場合は受け取った情報を使用
+        setUser(updatedUser);
+      }
+    } catch {
+      // エラーが発生した場合は受け取った情報を使用
+      setUser(updatedUser);
+    }
+    // avatarPreviewをクリア（実際の画像を表示するため）
+    setAvatarPreview(null);
+    // トーストはProfileEditForm内で既に表示されるため、ここでは表示しない
   };
 
   const handleCancel = () => {
@@ -153,7 +168,10 @@ export default function ProfileEditPage() {
             {/* プレビュー表示 */}
             <div className="mb-8">
               <h2 className="text-lg font-medium text-gray-900 mb-4">プレビュー</h2>
-              <ProfileDisplay user={user} showEditButton={false} />
+              <ProfileDisplay 
+                user={{ ...user, avatar_url: avatarPreview || user.avatar_url }} 
+                showEditButton={false} 
+              />
             </div>
             
             {/* 編集フォーム */}
@@ -163,6 +181,7 @@ export default function ProfileEditPage() {
                 user={user}
                 onSuccess={handleSuccess}
                 onCancel={handleCancel}
+                onPreviewChange={(previewUrl) => setAvatarPreview(previewUrl)}
               />
             </div>
           </div>

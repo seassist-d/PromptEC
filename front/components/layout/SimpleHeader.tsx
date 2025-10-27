@@ -11,11 +11,12 @@ export default function Header() {
   const { user, loading, signOut } = useAuth();
   const { itemCount } = useCart();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [profileUser, setProfileUser] = useState<User | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // プロフィール情報を取得
+  // プロフィール情報を取得（ページ読み込み時と定期的に更新）
   useEffect(() => {
     const fetchProfile = async () => {
       if (user && !profileLoading) {
@@ -34,6 +35,30 @@ export default function Header() {
     };
 
     fetchProfile();
+    
+    // 定期的にプロフィールを再取得（30秒ごと）
+    const interval = setInterval(fetchProfile, 30000);
+    
+    return () => clearInterval(interval);
+  }, [user]);
+  
+  // フォーカスが戻ったときにプロフィールを再取得
+  useEffect(() => {
+    const handleFocus = async () => {
+      if (user) {
+        try {
+          const result = await getProfileClient();
+          if (result.success && result.user) {
+            setProfileUser(result.user);
+          }
+        } catch (error) {
+          console.error('Failed to fetch profile on focus:', error);
+        }
+      }
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
   }, [user]);
 
   // ドロップダウン外クリックで閉じる
@@ -66,20 +91,20 @@ export default function Header() {
 
   return (
     <header className="bg-gradient-to-r from-blue-600 to-purple-600 shadow-lg border-b border-blue-500/20">
-      <div className="w-full px-1 sm:px-2 lg:px-3">
-        <div className="flex justify-between items-center h-16">
+      <div className="w-full px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-14 sm:h-16">
           {/* ロゴ */}
-          <div className="flex-shrink-0 ml-4">
+          <div className="flex-shrink-0">
             <Link href="/" className="flex items-center group">
-              <span className="text-3xl font-bold text-white group-hover:text-blue-200 transition-colors duration-300">
+              <span className="text-xl sm:text-2xl lg:text-3xl font-bold text-white group-hover:text-blue-200 transition-colors duration-300">
                 PromptEC
               </span>
-              <span className="ml-2 text-white text-2xl animate-bounce">✨</span>
+              <span className="ml-1 sm:ml-2 text-white text-lg sm:text-xl lg:text-2xl animate-bounce">✨</span>
             </Link>
           </div>
           
-          {/* 中央: 検索バー */}
-          <div className="flex-1 max-w-lg mx-2">
+          {/* 中央: 検索バー（デスクトップのみ表示） */}
+          <div className="hidden md:flex flex-1 max-w-lg mx-4">
             <form action="/search" method="GET" className="relative">
               <input
                 type="text"
@@ -109,7 +134,7 @@ export default function Header() {
             
             {/* カートアイコン */}
             <Link href="/cart" className="relative text-white/90 hover:text-white p-2 transition-colors rounded-lg hover:bg-white/10">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 lg:w-6 lg:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l-1 12H6l-1-12z" />
               </svg>
               {itemCount > 0 && (
@@ -129,10 +154,10 @@ export default function Header() {
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="flex items-center space-x-2 text-white/90 hover:text-white px-3 py-2 text-sm font-medium rounded-lg hover:bg-white/10 transition-colors"
+                  className="flex items-center space-x-1 sm:space-x-2 text-white/90 hover:text-white px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium rounded-lg hover:bg-white/10 transition-colors"
                 >
                   {/* ユーザーアバター */}
-                  <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
                     {(profileUser?.avatar_url || user.user_metadata?.avatar_url) ? (
                       <img 
                         src={profileUser?.avatar_url || user.user_metadata?.avatar_url} 
@@ -145,7 +170,7 @@ export default function Header() {
                       </svg>
                     )}
                   </div>
-                  <span>{getDisplayName()}</span>
+                  <span className="hidden sm:inline">{getDisplayName()}</span>
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
@@ -184,12 +209,12 @@ export default function Header() {
                 )}
               </div>
             ) : (
-              // 未ログイン: ログイン・新規登録ボタン
+              // 未ログイン: ログイン・新規登録ボタン（デスクトップ）
               <>
-                <Link href="/auth/login" className="text-white/90 hover:text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-white/10">
+                <Link href="/auth/login" className="text-white/90 hover:text-white px-2 lg:px-4 py-2 rounded-lg text-xs lg:text-sm font-medium transition-colors hover:bg-white/10">
                   ログイン
                 </Link>
-                <Link href="/auth/register" className="bg-white text-blue-600 px-6 py-2 rounded-lg text-sm font-bold hover:bg-blue-50 shadow-lg transition-all hover:scale-105">
+                <Link href="/auth/register" className="bg-white text-blue-600 px-4 lg:px-6 py-2 rounded-lg text-xs lg:text-sm font-bold hover:bg-blue-50 shadow-lg transition-all hover:scale-105">
                   新規登録
                 </Link>
               </>

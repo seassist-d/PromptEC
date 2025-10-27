@@ -6,17 +6,39 @@ import Header from '@/components/layout/SimpleHeader';
 import Footer from '@/components/layout/Footer';
 import { useAuth } from '@/lib/useAuth';
 import { uploadPromptThumbnail, createImagePreview } from '@/lib/file-upload';
+import { uploadPromptThumbnailWithProgress } from '@/lib/file-upload-with-progress';
+import ProgressBar from '@/components/common/ProgressBar';
+import { useDraft } from '@/hooks/useDraft';
+import TagInput from '@/components/prompts/TagInput';
 
 export default function PromptCreatePage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const [formData, setFormData] = useState({
+  
+  // ドラフト保存機能
+  const {
+    data: draftData,
+    updateData: updateDraft,
+    clearDraft,
+    isDraftAvailable,
+    lastSaved,
+    isSaving,
+  } = useDraft('prompt-draft', {
     title: '',
     description: '',
     content: '',
     category_id: '',
     price: '',
-    tags: ''
+    tags: '',
+  });
+
+  const [formData, setFormData] = useState({
+    title: draftData.title || '',
+    description: draftData.description || '',
+    content: draftData.content || '',
+    category_id: draftData.category_id || '',
+    price: draftData.price || '',
+    tags: draftData.tags || ''
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>('');
@@ -27,6 +49,10 @@ export default function PromptCreatePage() {
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
   const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  
+  // プレビュー用state
+  const [activeTab, setActiveTab] = useState<'edit' | 'preview'>('edit');
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -107,10 +133,15 @@ export default function PromptCreatePage() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     
-    setFormData(prev => ({
-      ...prev,
+    const newData = {
+      ...formData,
       [name]: value
-    }));
+    };
+    
+    setFormData(newData);
+    
+    // ドラフトを自動更新
+    updateDraft({ [name]: value });
 
     // リアルタイムバリデーション
     if (validationErrors[name]) {
@@ -164,11 +195,19 @@ export default function PromptCreatePage() {
         throw new Error('ユーザー情報が見つかりません');
       }
 
-      // サムネイル画像のアップロード
+      // サムネイル画像のアップロード（プログレスバー付き）
       let thumbnailUrl = '';
       if (thumbnailFile) {
         setUploadingThumbnail(true);
-        const uploadResult = await uploadPromptThumbnail(thumbnailFile, user.id);
+        setUploadProgress(0);
+        
+        const uploadResult = await uploadPromptThumbnailWithProgress(
+          thumbnailFile,
+          user.id,
+          (progress) => {
+            setUploadProgress(progress.progress);
+          }
+        );
         
         if (!uploadResult.success) {
           throw new Error(uploadResult.error || 'サムネイル画像のアップロードに失敗しました');
@@ -176,6 +215,7 @@ export default function PromptCreatePage() {
         
         thumbnailUrl = uploadResult.url || '';
         setUploadingThumbnail(false);
+        setUploadProgress(0);
       }
 
       const promptData = {
@@ -203,6 +243,10 @@ export default function PromptCreatePage() {
       }
 
       const result = await response.json();
+      
+      // ドラフトをクリア
+      clearDraft();
+      
       router.push(`/prompts/${result.prompt.slug}`);
     } catch (error) {
       console.error('Prompt creation error:', error);
@@ -231,12 +275,30 @@ export default function PromptCreatePage() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-white shadow sm:rounded-lg">
             <div className="px-4 py-5 sm:p-6">
-              <h1 className="text-2xl font-bold text-gray-900 mb-6">
-                プロンプトを登録
-              </h1>
-              <p className="text-sm text-gray-600 mb-6">
-                新しいプロンプトを登録して販売を開始しましょう。
-              </p>
+              <div className="flex justify-between items-start mb-6">
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">
+                    プロンプトを登録
+                  </h1>
+                  <p className="text-sm text-gray-600 mt-2">
+                    新しいプロンプトを登録して販売を開始しましょう。
+                  </p>
+                </div>
+                
+                {/* ドラフト情報表示 */}
+                {(isDraftAvailable || isSaving) && (
+                  <div className="flex items-center space-x-2 text-sm text-blue-600">
+                    {isSaving && (
+                      <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                    )}
+                    <span>
+                      {isSaving ? '保存中...' : lastSaved ? `下書きを保存済み (${lastSaved.toLocaleTimeString()})` : 'ドラフトあり'}
+                    </span>
+                  </div>
+                )}
+              </div>
 
               {error && (
               <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
@@ -253,6 +315,43 @@ export default function PromptCreatePage() {
               </div>
               )}
 
+              {/* タブ切り替え */}
+              <div className="mb-6 border-b border-gray-200">
+                <nav className="-mb-px flex space-x-8" aria-label="Tabs">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('edit')}
+                    className={`${
+                      activeTab === 'edit'
+                        ? 'border-blue-500 text-blue-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
+                  >
+                    <svg className="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    編集
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('preview')}
+                    className={`${
+                      activeTab === 'preview'
+                        ? 'border-blue-500 text-blue-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
+                  >
+                    <svg className="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                    プレビュー
+                  </button>
+                </nav>
+              </div>
+
+              {/* 編集タブ */}
+              {activeTab === 'edit' && (
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
                 <label htmlFor="title" className="block text-sm font-medium text-gray-700">
@@ -270,10 +369,16 @@ export default function PromptCreatePage() {
                       validationErrors.title ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : ''
                     }`}
                     placeholder="プロンプトのタイトルを入力してください"
+                    maxLength={100}
                   />
-                  {validationErrors.title && (
-                    <p className="mt-1 text-sm text-red-600">{validationErrors.title}</p>
-                  )}
+                  <div className="mt-1 flex justify-between items-center">
+                    {validationErrors.title && (
+                      <p className="text-sm text-red-600">{validationErrors.title}</p>
+                    )}
+                    <p className="text-xs text-gray-500 ml-auto">
+                      {formData.title.length} / 100
+                    </p>
+                  </div>
                 </div>
               </div>
 
@@ -293,10 +398,16 @@ export default function PromptCreatePage() {
                       validationErrors.description ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : ''
                     }`}
                     placeholder="プロンプトの説明を入力してください"
+                    maxLength={200}
                   />
-                  {validationErrors.description && (
-                    <p className="mt-1 text-sm text-red-600">{validationErrors.description}</p>
-                  )}
+                  <div className="mt-1 flex justify-between items-center">
+                    {validationErrors.description && (
+                      <p className="text-sm text-red-600">{validationErrors.description}</p>
+                    )}
+                    <p className="text-xs text-gray-500 ml-auto">
+                      {formData.description.length} / 200
+                    </p>
+                  </div>
                 </div>
               </div>
 
@@ -316,10 +427,18 @@ export default function PromptCreatePage() {
                       validationErrors.content ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : ''
                     }`}
                     placeholder="プロンプトの内容を入力してください"
+                    maxLength={2000}
                   />
-                  {validationErrors.content && (
-                    <p className="mt-1 text-sm text-red-600">{validationErrors.content}</p>
-                  )}
+                  <div className="mt-1 flex justify-between items-center">
+                    {validationErrors.content && (
+                      <p className="text-sm text-red-600">{validationErrors.content}</p>
+                    )}
+                    <p className={`text-xs ml-auto ${
+                      formData.content.length > 1800 ? 'text-orange-500' : 'text-gray-500'
+                    }`}>
+                      {formData.content.length} / 2000
+                    </p>
+                  </div>
                 </div>
               </div>
 
@@ -406,7 +525,13 @@ export default function PromptCreatePage() {
                     </div>
                   )}
                   {uploadingThumbnail && (
-                    <p className="mt-2 text-sm text-blue-600">画像をアップロード中...</p>
+                    <div className="mt-3">
+                      <ProgressBar
+                        progress={uploadProgress}
+                        label="画像をアップロード中"
+                        showPercentage={true}
+                      />
+                    </div>
                   )}
                 </div>
               </div>
@@ -416,23 +541,21 @@ export default function PromptCreatePage() {
                   タグ
                 </label>
                 <div className="mt-1">
-                  <input
-                    type="text"
-                    name="tags"
-                    id="tags"
+                  <TagInput
                     value={formData.tags}
-                    onChange={handleInputChange}
-                    className={`shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md text-gray-900 ${
-                      validationErrors.tags ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : ''
-                    }`}
-                    placeholder="タグ1, タグ2, タグ3（カンマ区切り）"
+                    onChange={(value) => {
+                      setFormData(prev => ({ ...prev, tags: value }));
+                      updateDraft({ tags: value });
+                    }}
+                    placeholder="タグを入力（例: AI, マーケティング）"
+                    className={validationErrors.tags ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : ''}
                   />
                   {validationErrors.tags && (
                     <p className="mt-1 text-sm text-red-600">{validationErrors.tags}</p>
                   )}
                 </div>
                 <p className="mt-1 text-sm text-gray-500">
-                  複数のタグはカンマで区切って入力してください（最大10個）
+                  タグを入力すると候補が表示されます。複数のタグはカンマで区切って入力してください（最大10個）
                 </p>
               </div>
 
@@ -452,10 +575,118 @@ export default function PromptCreatePage() {
                   {isLoading ? '登録中...' : 'プロンプトを登録'}
                 </button>
               </div>
-            </form>
+              </form>
+              )}
+
+              {/* プレビュータブ */}
+              {activeTab === 'preview' && (
+                <div className="space-y-6">
+                  <div className="bg-white border border-gray-300 rounded-lg p-6">
+                    {/* プレビュー表示 */}
+                    <div className="prose max-w-none">
+                      <h1 className="text-3xl font-bold text-gray-900 mb-4">
+                        {formData.title || 'タイトルが未入力です'}
+                      </h1>
+                      
+                      {/* カテゴリ */}
+                      {formData.category_id && (
+                        <div className="mb-4">
+                          {categories.find(c => c.id === parseInt(formData.category_id)) && (
+                            <span className="inline-block bg-blue-100 text-blue-800 text-sm px-3 py-1 rounded-full">
+                              {categories.find(c => c.id === parseInt(formData.category_id))?.name}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      
+                      {/* サムネイル */}
+                      {thumbnailPreview && (
+                        <div className="mb-4">
+                          <img
+                            src={thumbnailPreview}
+                            alt="サムネイル"
+                            className="w-full h-auto rounded-lg"
+                          />
+                        </div>
+                      )}
+                      
+                      {/* 説明 */}
+                      {formData.description && (
+                        <div className="mb-6">
+                          <p className="text-lg text-gray-700 whitespace-pre-wrap">
+                            {formData.description}
+                          </p>
+                        </div>
+                      )}
+                      
+                      {/* プロンプト内容 */}
+                      {formData.content && (
+                        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-6">
+                          <h2 className="text-xl font-semibold text-gray-900 mb-4">プロンプト内容</h2>
+                          <pre className="text-sm text-gray-800 whitespace-pre-wrap font-mono">
+                            {formData.content}
+                          </pre>
+                        </div>
+                      )}
+                      
+                      {/* 価格 */}
+                      {formData.price && (
+                        <div className="mb-6">
+                          <p className="text-2xl font-bold text-blue-600">
+                            ¥{parseInt(formData.price).toLocaleString()}
+                          </p>
+                        </div>
+                      )}
+                      
+                      {/* タグ */}
+                      {formData.tags && (
+                        <div className="flex flex-wrap gap-2">
+                          {formData.tags.split(',').map((tag, index) => (
+                            tag.trim() && (
+                              <span
+                                key={index}
+                                className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800 border border-gray-200"
+                              >
+                                {tag.trim()}
+                              </span>
+                            )
+                          ))}
+                        </div>
+                      )}
+                      
+                      {!formData.title && !formData.description && !formData.content && (
+                        <div className="text-center py-12 text-gray-500">
+                          <svg className="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                          <p>プロンプトを入力すると、ここにプレビューが表示されます。</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* プレビューモードでのアクション */}
+                  <div className="flex justify-end space-x-3">
+                    <button
+                      type="button"
+                      onClick={() => router.back()}
+                      className="bg-gray-300 text-gray-700 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                    >
+                      キャンセル
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('edit')}
+                      className="bg-blue-600 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    >
+                      編集に戻る
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </div>
       </main>
       <Footer />
     </div>

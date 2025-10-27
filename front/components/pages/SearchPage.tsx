@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import SearchFilters from '@/components/search/SearchFilters';
 import SearchResults from '@/components/search/SearchResults';
@@ -89,49 +89,41 @@ export default function SearchPage() {
 
   // フィルター変更時の検索実行
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      performSearch(1);
-    }, 300); // デバウンス
-
-    return () => clearTimeout(timeoutId);
+    performSearch(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
 
-  // 初期検索
-  useEffect(() => {
-    performSearch(1);
-  }, []);
-
-  const handleFilterChange = (newFilters: Partial<SearchFilters>) => {
+  const handleFilterChange = useCallback((newFilters: Partial<SearchFilters>) => {
     setFilters(prev => ({ ...prev, ...newFilters }));
-  };
+  }, []);
 
   const handlePageChange = (page: number) => {
     performSearch(page);
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
       {/* ページタイトル */}
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold text-gray-900 mb-2">
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-2">
           プロンプト検索
         </h1>
-        <p className="text-lg text-gray-600">
+        <p className="text-base sm:text-lg text-gray-600">
           お探しのプロンプトを見つけましょう
         </p>
       </div>
 
       {/* 検索バー */}
-      <div className="mb-8">
+      <div className="mb-6 sm:mb-8">
         <SearchBar
           query={filters.query}
           onQueryChange={(query) => handleFilterChange({ query })}
         />
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-8">
+      <div className="flex flex-col lg:flex-row gap-6 sm:gap-8">
         {/* サイドバー: フィルター */}
-        <div className="lg:w-80 flex-shrink-0">
+        <div className="w-full lg:w-80 flex-shrink-0">
           <SearchFilters
             filters={filters}
             onFiltersChange={handleFilterChange}
@@ -139,7 +131,7 @@ export default function SearchPage() {
         </div>
 
         {/* メインコンテンツ: 検索結果 */}
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <SearchResults
             results={results}
             loading={loading}

@@ -22,12 +22,12 @@ export default function CartPage() {
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Header />
       <main className="flex-1">
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
         {/* ヘッダー */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
+        <div className="mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
                 カート
                 {itemCount > 0 && (
                   <span className="ml-2 text-lg font-normal text-gray-600">
@@ -73,7 +73,7 @@ export default function CartPage() {
         )}
 
         {/* メインコンテンツ */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
           {/* カートアイテム一覧 */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-lg shadow-sm">
@@ -90,9 +90,9 @@ export default function CartPage() {
         </div>
 
         {/* フッター情報 */}
-        <div className="mt-12 bg-white rounded-lg shadow-sm p-6">
-          <h2 className="text-lg font-semibold mb-4">購入について</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="mt-8 sm:mt-12 bg-white rounded-lg shadow-sm p-4 sm:p-6">
+          <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">購入について</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
             <div className="text-center">
               <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
                 <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
