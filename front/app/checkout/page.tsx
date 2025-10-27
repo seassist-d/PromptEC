@@ -1,16 +1,24 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/hooks/useCart';
 import Link from 'next/link';
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements } from '@stripe/react-stripe-js';
+import StripeCheckoutForm from '@/components/checkout/StripeCheckoutForm';
+
+// Stripeの初期化
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '');
 
 export default function CheckoutPage() {
   const router = useRouter();
   const { items, total, itemCount } = useCart();
-  const [selectedPayment, setSelectedPayment] = useState<string>('');
+  const [selectedPayment, setSelectedPayment] = useState<string>('card');
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [orderId, setOrderId] = useState<string | null>(null);
+  const [showStripeForm, setShowStripeForm] = useState(false);
 
   const handleCheckout = async () => {
     if (!selectedPayment) {
@@ -44,7 +52,15 @@ export default function CheckoutPage() {
         throw new Error(orderResult.error || '注文処理に失敗しました');
       }
 
-      // Step 2: 決済処理を実行
+      // Stripe決済の場合はStripeフォームを表示
+      if (selectedPayment === 'card') {
+        setOrderId(orderResult.orderId);
+        setShowStripeForm(true);
+        setIsProcessing(false);
+        return;
+      }
+
+      // Step 2: 簡易決済の場合は従来通り処理
       const paymentResponse = await fetch('/api/payments', {
         method: 'POST',
         headers: {
@@ -84,6 +100,18 @@ export default function CheckoutPage() {
       
       setIsProcessing(false);
     }
+  };
+
+  // Stripe決済成功時のコールバック
+  const handleStripeSuccess = (orderId: string) => {
+    router.push(`/checkout/success?orderId=${orderId}`);
+  };
+
+  // Stripe決済エラー時のコールバック
+  const handleStripeError = (errorMessage: string) => {
+    setError(errorMessage);
+    setShowStripeForm(false);
+    setOrderId(null);
   };
 
   if (items.length === 0) {
@@ -134,7 +162,7 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            {/* 支払い方法 */}
+              {/* 支払い方法 */}
             <div className="bg-white rounded-lg shadow-sm p-6">
               <h2 className="text-xl font-semibold mb-4 text-gray-900">支払い方法</h2>
               <div className="space-y-3">
@@ -153,7 +181,7 @@ export default function CheckoutPage() {
                   </div>
                 </label>
 
-                <label className="flex items-center p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
+                <label className="flex items-center p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 opacity-50">
                   <input
                     type="radio"
                     name="payment"
@@ -161,13 +189,15 @@ export default function CheckoutPage() {
                     checked={selectedPayment === 'paypal'}
                     onChange={(e) => setSelectedPayment(e.target.value)}
                     className="mr-3"
+                    disabled
                   />
                   <div>
                     <div className="font-semibold text-gray-900">PayPal</div>
+                    <div className="text-sm text-gray-700">今後実装予定</div>
                   </div>
                 </label>
 
-                <label className="flex items-center p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
+                <label className="flex items-center p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 opacity-50">
                   <input
                     type="radio"
                     name="payment"
@@ -175,12 +205,29 @@ export default function CheckoutPage() {
                     checked={selectedPayment === 'paypay'}
                     onChange={(e) => setSelectedPayment(e.target.value)}
                     className="mr-3"
+                    disabled
                   />
                   <div>
                     <div className="font-semibold text-gray-900">PayPay</div>
+                    <div className="text-sm text-gray-700">今後実装予定</div>
                   </div>
                 </label>
               </div>
+
+              {/* Stripe Checkout Form */}
+              {showStripeForm && orderId && (
+                <Elements stripe={stripePromise}>
+                  <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                    <h3 className="text-lg font-semibold mb-4 text-gray-900">カード情報</h3>
+                    <StripeCheckoutForm
+                      orderId={orderId}
+                      amount={total}
+                      onSuccess={handleStripeSuccess}
+                      onError={handleStripeError}
+                    />
+                  </div>
+                </Elements>
+              )}
             </div>
           </div>
 
@@ -203,13 +250,15 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
-              <button
-                onClick={handleCheckout}
-                disabled={isProcessing || !selectedPayment}
-                className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isProcessing ? '処理中...' : '購入を確定'}
-              </button>
+              {!showStripeForm && (
+                <button
+                  onClick={handleCheckout}
+                  disabled={isProcessing || !selectedPayment}
+                  className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isProcessing ? '処理中...' : '購入を確定'}
+                </button>
+              )}
 
               <Link
                 href="/cart"

@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase-server';
+import Stripe from 'stripe';
 
-// 決済処理（簡易版）
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2024-12-18.acacia',
+});
+
+// 決済処理（Stripe統合版）
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
@@ -14,7 +19,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { orderId, paymentMethod } = body;
+    const { orderId, paymentMethod, stripePaymentIntentId } = body;
 
     if (!orderId || !paymentMethod) {
       return NextResponse.json(
@@ -77,19 +82,32 @@ export async function POST(request: NextRequest) {
       status: 'captured'
     });
 
+    // Stripe決済の場合はPaymentIntentを確認
+    let paymentData: any = {
+      order_id: orderId,
+      provider_id: provider.id,
+      amount_jpy: order.total_amount_jpy,
+      status: 'captured',
+      raw_payload: JSON.stringify({
+        method: paymentMethod,
+        processed_at: new Date().toISOString(),
+        note: '簡易決済処理（テスト用）'
+      })
+    };
+
+    if (stripePaymentIntentId) {
+      // Stripe決済の場合
+      paymentData.raw_payload = JSON.stringify({
+        method: paymentMethod,
+        stripe_payment_intent_id: stripePaymentIntentId,
+        processed_at: new Date().toISOString(),
+        note: 'Stripe決済'
+      });
+    }
+
     const { data: payment, error: paymentError } = await supabase
       .from('payments')
-      .insert({
-        order_id: orderId,
-        provider_id: provider.id,
-        amount_jpy: order.total_amount_jpy,
-        status: 'captured', // トリガーを発動させるために 'captured' を設定
-        raw_payload: JSON.stringify({
-          method: paymentMethod,
-          processed_at: new Date().toISOString(),
-          note: '簡易決済処理（テスト用）'
-        })
-      })
+      .insert(paymentData)
       .select('id, status')
       .single();
 
@@ -219,6 +237,21 @@ export async function POST(request: NextRequest) {
       }
 
       console.log('台帳エントリー作成完了');
+    }
+
+    // カートをクリア
+    const { data: userCart } = await supabase
+      .from('carts')
+      .select('id')
+      .eq('buyer_id', user.id)
+      .single();
+
+    if (userCart) {
+      await supabase
+        .from('cart_items')
+        .delete()
+        .eq('cart_id', userCart.id);
+      console.log('カートをクリアしました');
     }
 
     // 注文を確認（トリガーによってpaidになっているはず）

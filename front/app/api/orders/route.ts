@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase-server';
-import { cookies } from 'next/headers';
+
+// 型定義
+interface CartItem {
+  id: string;
+  prompt_id: string;
+  unit_price_jpy: number;
+  quantity: number;
+}
 
 // 注文作成
 export async function POST(request: NextRequest) {
@@ -55,7 +62,7 @@ export async function POST(request: NextRequest) {
 
     // 合計金額を計算
     const totalAmount = cart.cart_items.reduce(
-      (sum: number, item: any) => sum + item.unit_price_jpy,
+      (sum: number, item: CartItem) => sum + item.unit_price_jpy,
       0
     );
 
@@ -82,7 +89,7 @@ export async function POST(request: NextRequest) {
     console.log('注文ID:', order.id);
 
     const orderItems = await Promise.all(
-      cart.cart_items.map(async (item: any) => {
+      cart.cart_items.map(async (item: CartItem) => {
         console.log('処理中のプロンプトID:', item.prompt_id);
         
         // プロンプトの最新バージョンを取得
@@ -135,11 +142,12 @@ export async function POST(request: NextRequest) {
       throw new Error('注文アイテムの作成に失敗しました');
     }
 
-    // カートをクリア
-    await supabase
-      .from('cart_items')
-      .delete()
-      .eq('cart_id', cart.id);
+    // カートをクリア（注文作成時にはクリアしない）
+    // 決済完了時にクリアするように変更
+    // await supabase
+    //   .from('cart_items')
+    //   .delete()
+    //   .eq('cart_id', cart.id);
 
     return NextResponse.json({
       success: true,
@@ -158,7 +166,7 @@ export async function POST(request: NextRequest) {
 }
 
 // 注文履歴取得
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const supabase = await createClient();
     
