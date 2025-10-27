@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { useGoogleAuth } from '@/hooks/useGoogleAuth';
+import { useMicrosoftAuth } from '@/hooks/useMicrosoftAuth';
 
 interface SocialLoginButtonsProps {
   onSuccess?: (message: string) => void;
@@ -10,76 +11,31 @@ interface SocialLoginButtonsProps {
 
 export default function SocialLoginButtons({ onError }: SocialLoginButtonsProps) {
   const [mounted, setMounted] = useState(false);
+  
+  // カスタムフックを使用
+  const googleAuth = useGoogleAuth();
+  const microsoftAuth = useMicrosoftAuth();
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
   const handleGoogleLogin = async () => {
-    try {
-      console.log('Google認証を開始します...');
-      
-      // 現在のページ（登録/ログイン）を判定
-      const isRegisterPage = window.location.pathname.includes('/register');
-      
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback?source=${isRegisterPage ? 'register' : 'login'}`,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
-        }
-      });
-      
-      if (error) {
-        console.error('Google認証エラー:', error);
-        onError?.(`Google認証に失敗しました: ${error.message}`);
-      } else {
-        console.log('Google認証リダイレクト開始:', data);
-        // リダイレクトが開始されるので、ここでは成功メッセージは表示しない
-      }
-    } catch (error) {
-      console.error('Google認証で予期しないエラー:', error);
-      onError?.(`Google認証でエラーが発生しました`);
+    const result = await googleAuth.signIn();
+    
+    if (!result.success) {
+      onError?.(result.error || 'Google認証でエラーが発生しました');
     }
+    // 成功時はリダイレクトが開始されるため、エラーコールバックは不要
   };
 
   const handleMicrosoftLogin = async () => {
-    try {
-      console.log('Microsoft認証を開始します...');
-      console.log('Current origin:', window.location.origin);
-      console.log('Redirect URL:', `${window.location.origin}/auth/callback`);
-      
-      // 現在のページ（登録/ログイン）を判定
-      const isRegisterPage = window.location.pathname.includes('/register');
-      
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'azure',
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback?source=${isRegisterPage ? 'register' : 'login'}`,
-          scopes: 'openid profile email offline_access',
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-            response_type: 'code'
-          }
-        }
-      });
-      
-      console.log('OAuth response:', { data, error });
-      
-      if (error) {
-        console.error('Microsoft認証エラー:', error);
-        onError?.(`Microsoft認証に失敗しました: ${error.message}`);
-      } else {
-        console.log('Microsoft認証リダイレクト開始:', data);
-      }
-    } catch (error) {
-      console.error('Microsoft認証で予期しないエラー:', error);
-      onError?.(`Microsoft認証でエラーが発生しました`);
+    const result = await microsoftAuth.signIn();
+    
+    if (!result.success) {
+      onError?.(result.error || 'Microsoft認証でエラーが発生しました');
     }
+    // 成功時はリダイレクトが開始されるため、エラーコールバックは不要
   };
 
 

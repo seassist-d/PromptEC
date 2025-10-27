@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase, clearAuthState } from '@/lib/supabaseClient';
 
 interface LoginFormProps {
   onSuccess?: (message: string) => void;
@@ -54,6 +54,14 @@ export default function LoginForm({ onSuccess, onError }: LoginFormProps) {
     setErrors({});
 
     try {
+      // 認証状態をクリアしてからログイン（念のため）
+      try {
+        await clearAuthState();
+      } catch (clearError) {
+        console.log('認証状態クリアをスキップ:', clearError);
+        // クリアに失敗しても続行
+      }
+
       // Supabaseでログイン処理
       const { data, error } = await supabase.auth.signInWithPassword({
         email: formData.email,
@@ -61,7 +69,7 @@ export default function LoginForm({ onSuccess, onError }: LoginFormProps) {
       });
 
       if (error) {
-        console.error('Login error:', error);
+        // console.error('Login error:', error); // コンソールエラーを非表示
         
         // エラーメッセージの日本語化
         let errorMessage = 'ログインに失敗しました。';
@@ -74,7 +82,7 @@ export default function LoginForm({ onSuccess, onError }: LoginFormProps) {
         }
 
         onError?.(errorMessage);
-        setErrors({ general: errorMessage });
+        // errors.generalの表示は削除（login/page.tsxのerrorMessageのみ表示）
       } else {
         onSuccess?.('ログインに成功しました');
         
@@ -86,7 +94,7 @@ export default function LoginForm({ onSuccess, onError }: LoginFormProps) {
     } catch (error) {
       const errorMessage = 'ログインに失敗しました';
       onError?.(errorMessage);
-      setErrors({ general: errorMessage });
+      // errors.generalの表示は削除（login/page.tsxのerrorMessageのみ表示）
     } finally {
       setIsLoading(false);
     }
@@ -135,12 +143,6 @@ export default function LoginForm({ onSuccess, onError }: LoginFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {errors.general && mounted && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg shadow-sm">
-          {errors.general}
-        </div>
-      )}
-
       <div>
         <label htmlFor="email" className="sr-only">
           メールアドレス

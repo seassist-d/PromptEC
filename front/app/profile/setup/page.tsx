@@ -16,6 +16,7 @@ export default function ProfileSetupPage() {
   const [error, setError] = useState<string>('');
 
   useEffect(() => {
+    // 認証チェック
     if (!authLoading && !user) {
       router.push('/auth/login');
       return;
@@ -29,6 +30,55 @@ export default function ProfileSetupPage() {
       }));
     }
   }, [user, authLoading, router]);
+
+  // user_profilesレコードを確保（独立したuseEffect）
+  useEffect(() => {
+    const ensureProfileRow = async () => {
+      const { data: { session }, error: sessionErr } = await supabase.auth.getSession();
+      if (sessionErr) {
+        console.error('[setup] getSession error:', sessionErr);
+        return;
+      }
+
+      const user = session?.user;
+      if (!user) {
+        console.warn('[setup] No session user in /profile/setup');
+        return;
+      }
+
+      console.log('[setup] current user:', user.id, user.email);
+
+      const { data: existingProfile, error: fetchErr } = await supabase
+        .from('user_profiles')
+        .select('user_id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      console.log('[setup] existingProfile:', existingProfile, 'fetchErr:', fetchErr);
+
+      if (!existingProfile) {
+        const { error: upsertErr } = await supabase
+          .from('user_profiles')
+          .upsert(
+            {
+              user_id: user.id,
+              display_name: null,
+            },
+            { onConflict: 'user_id' }
+          );
+
+        if (upsertErr) {
+          console.error('[setup] upsert failed:', upsertErr);
+        } else {
+          console.log('[setup] profile row created/ensured');
+        }
+      } else {
+        console.log('[setup] profile row already exists for user:', user.id);
+      }
+    };
+
+    ensureProfileRow();
+  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -78,6 +128,7 @@ export default function ProfileSetupPage() {
           display_name: formData.display_name,
           bio: formData.bio || null,
           contact: {},
+          onboarding_completed: true,
           updated_at: new Date().toISOString()
         })
         .select();
