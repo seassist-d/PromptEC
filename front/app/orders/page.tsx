@@ -7,14 +7,19 @@ import Link from 'next/link';
 interface OrderItem {
   id: string;
   prompt_id: string;
+  prompt_version_id: string;
   unit_price_jpy: number;
   quantity: number;
-  prompts: {
+  prompt_versions: {
     id: string;
-    title: string;
-    slug: string;
-    thumbnail_url?: string;
-    short_description?: string;
+    version: number;
+    prompts: {
+      id: string;
+      title: string;
+      slug: string;
+      thumbnail_url?: string;
+      short_description?: string;
+    };
   };
 }
 
@@ -34,7 +39,7 @@ interface Order {
   status: string;
   created_at: string;
   order_items: OrderItem[];
-  payments: Payment[];
+  payments: Payment[] | Payment;
 }
 
 export default function OrdersPage() {
@@ -52,6 +57,7 @@ export default function OrdersPage() {
         }
 
         const data = await response.json();
+        console.log('注文履歴データ:', JSON.stringify(data.orders?.[0], null, 2));
         setOrders(data.orders || []);
       } catch (err) {
         console.error('注文履歴取得エラー:', err);
@@ -134,8 +140,21 @@ export default function OrdersPage() {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto px-4 max-w-6xl">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">購入履歴</h1>
-          <p className="text-gray-600 mt-2">過去の購入履歴を確認できます</p>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">購入履歴</h1>
+              <p className="text-gray-600 mt-2">過去の購入履歴を確認できます</p>
+            </div>
+            <Link
+              href="/profile"
+              className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+              プロフィールに戻る
+            </Link>
+          </div>
         </div>
 
         {orders.length === 0 ? (
@@ -187,53 +206,83 @@ export default function OrdersPage() {
                 {/* 注文アイテム一覧 */}
                 <div className="px-6 py-4">
                   <h3 className="text-sm font-semibold text-gray-900 mb-3">購入商品</h3>
-                  <div className="space-y-3">
-                    {order.order_items.map((item) => (
-                      <div key={item.id} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
-                        <div className="flex items-center space-x-4 flex-1">
-                          {item.prompts?.thumbnail_url && (
-                            <img
-                              src={item.prompts.thumbnail_url}
-                              alt={item.prompts.title}
-                              className="w-16 h-16 object-cover rounded-lg"
-                            />
-                          )}
-                          <div className="flex-1">
-                            <Link
-                              href={`/prompts/${item.prompts?.slug}`}
-                              className="font-semibold text-gray-900 hover:text-blue-600 transition-colors"
-                            >
-                              {item.prompts?.title || 'プロンプト'}
-                            </Link>
-                            {item.prompts?.short_description && (
-                              <p className="text-sm text-gray-600 mt-1">{item.prompts.short_description}</p>
+                  {!order.order_items || order.order_items.length === 0 ? (
+                    <div className="text-center py-4 text-gray-500">
+                      注文アイテムが見つかりません
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {order.order_items.map((item) => {
+                      const prompt = item.prompt_versions?.prompts;
+                      
+                      // プロンプト情報がない場合の処理
+                      if (!prompt) {
+                        return (
+                          <div key={item.id} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
+                            <div className="flex items-center space-x-4 flex-1">
+                              <div className="flex-1">
+                                <p className="font-semibold text-gray-900">プロンプト情報が取得できません</p>
+                                <p className="text-sm text-gray-500">ID: {item.prompt_id}</p>
+                              </div>
+                            </div>
+                            <div className="text-right ml-4">
+                              <p className="text-lg font-bold text-gray-900">¥{item.unit_price_jpy.toLocaleString()}</p>
+                            </div>
+                          </div>
+                        );
+                      }
+                      
+                      return (
+                        <div key={item.id} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
+                          <div className="flex items-center space-x-4 flex-1">
+                            {prompt.thumbnail_url && (
+                              <img
+                                src={prompt.thumbnail_url}
+                                alt={prompt.title}
+                                className="w-16 h-16 object-cover rounded-lg"
+                              />
+                            )}
+                            <div className="flex-1">
+                              <Link
+                                href={`/prompts/${prompt.slug}`}
+                                className="font-semibold text-gray-900 hover:text-blue-600 transition-colors"
+                              >
+                                {prompt.title || 'プロンプト'}
+                              </Link>
+                              {prompt.short_description && (
+                                <p className="text-sm text-gray-600 mt-1">{prompt.short_description}</p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-right ml-4">
+                            <p className="text-lg font-bold text-gray-900">¥{item.unit_price_jpy.toLocaleString()}</p>
+                            {order.status === 'paid' && (
+                              <Link
+                                href={`/api/download/${order.id}/${item.id}`}
+                                className="mt-2 inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+                              >
+                                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                </svg>
+                                ダウンロード
+                              </Link>
                             )}
                           </div>
                         </div>
-                        <div className="text-right ml-4">
-                          <p className="text-lg font-bold text-gray-900">¥{item.unit_price_jpy.toLocaleString()}</p>
-                          {order.status === 'paid' && (
-                            <Link
-                              href={`/api/download/${order.id}/${item.id}`}
-                              className="mt-2 inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors"
-                            >
-                              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                              </svg>
-                              ダウンロード
-                            </Link>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                      );
+                    })}
+                    </div>
+                  )}
                 </div>
 
                 {/* 決済情報 */}
-                {order.payments && order.payments.length > 0 && (
+                {order.payments && (
                   <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
                     <p className="text-xs text-gray-600">
-                      決済方法: {order.payments[0].payment_providers?.display_name || '不明'}
+                      決済方法: {(() => {
+                        const payment = Array.isArray(order.payments) ? order.payments[0] : order.payments;
+                        return payment?.payment_providers?.display_name || '不明';
+                      })()}
                     </p>
                   </div>
                 )}

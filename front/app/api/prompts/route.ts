@@ -37,13 +37,21 @@ export async function GET(request: NextRequest) {
         updated_at,
         status,
         visibility,
-        categories!inner(id, name, slug)
+        categories(id, name, slug)
       `)
       .eq('seller_id', user.id)
       .order('created_at', { ascending: false });
 
     if (error) {
       console.error('Error fetching user prompts:', error);
+      
+      // プロンプトが存在しない場合でもエラーを返さない
+      if (error.code === 'PGRST116' || error.message?.includes('No rows')) {
+        return NextResponse.json({
+          prompts: []
+        });
+      }
+      
       return NextResponse.json(
         { message: 'プロンプトの取得に失敗しました', details: error.message },
         { status: 500 }
