@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { useEmailAuth } from '@/hooks/useEmailAuth';
 
 interface EmailAuthFormProps {
   onSuccess?: (message: string) => void;
@@ -16,8 +16,9 @@ export default function EmailAuthForm({ onSuccess, onError, onNavigateToLogin }:
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  
+  // カスタムフックを使用
+  const { signUp, resendEmail, isLoading, errors, setErrors } = useEmailAuth();
 
   useEffect(() => {
     setMounted(true);
@@ -67,100 +68,41 @@ export default function EmailAuthForm({ onSuccess, onError, onNavigateToLogin }:
     }
   };
 
-  // パスワード続行ボタンの処理（SupabaseのsignUpを使用）
+  // パスワード続行ボタンの処理
   const handlePasswordContinue = async () => {
     if (validatePassword()) {
-      setIsLoading(true);
       setErrors({});
 
-      try {
-        // Supabaseで新規登録を試行
-        const { data, error } = await supabase.auth.signUp({
-          email: email,
-          password: password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback?source=register`
-          }
-        });
+      // カスタムフックを使用してメール認証
+      const result = await signUp(email, password, 'register');
 
-      if (error) {
-        console.error('Registration error:', error);
-        console.log('Error message:', error.message);
-        console.log('Error status:', error.status);
-        
-        // 既存ユーザーのエラーメッセージをチェック
-        if (error.message.includes('User already registered') || 
-            error.message.includes('already registered') ||
-            error.message.includes('Email address already registered') ||
-            error.message.includes('duplicate key value') ||
-            error.message.includes('email already exists') ||
-            error.message.includes('For security purposes, you can only request this after') ||
-            error.status === 429) {
-          // 既存ユーザー
-          const errorMessage = 'このメールアドレスは既に登録されています。';
-          onError?.(errorMessage);
-          setErrors({ 
-            general: errorMessage,
-            showLoginButton: 'true'
-          });
-        } else if (error.message.includes('Password should be at least')) {
-          const errorMessage = 'パスワードは6文字以上で入力してください。';
-          onError?.(errorMessage);
-          setErrors({ general: errorMessage });
-        } else if (error.message.includes('Invalid email')) {
-          const errorMessage = '正しいメールアドレスを入力してください。';
-          onError?.(errorMessage);
-          setErrors({ general: errorMessage });
-        } else {
-          // その他のエラー（デバッグ用にエラーメッセージを表示）
-          const errorMessage = `新規登録に失敗しました: ${error.message}`;
-          onError?.(errorMessage);
-          setErrors({ general: errorMessage });
-        }
-      } else if (data?.user) {
-        // エラーがなく、ユーザーが作成された場合 = 新規ユーザー
+      if (result.success) {
         setEmailSent(true);
         onSuccess?.('確認メールを送信しました。メール内のリンクをクリックしてアカウントを有効化してください。');
       } else {
-        // その他の場合
-        setEmailSent(true);
-        onSuccess?.('確認メールを送信しました。メール内のリンクをクリックしてアカウントを有効化してください。');
-      }
-      } catch (error) {
-        const errorMessage = '新規登録に失敗しました';
-        onError?.(errorMessage);
-        setErrors({ general: errorMessage });
-      } finally {
-        setIsLoading(false);
+        onError?.(result.error || '新規登録に失敗しました');
+        // errors.generalの表示は削除（register/page.tsxのerrorMessageのみ表示）
+        setErrors({ 
+          showLoginButton: result.error?.includes('既に登録されています') ? 'true' : undefined
+        });
       }
     }
   };
 
   // 確認メール再送機能
   const handleResendEmail = async () => {
-    setIsLoading(true);
+    if (isLoading) return; // 既に処理中の場合は何もしない
     setErrors({});
 
-    try {
-      const { error } = await supabase.auth.resend({
-        type: "signup",
-        email: email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback?source=register`,
-        },
-      });
+    // カスタムフックを使用してメール再送
+    const result = await resendEmail(email, 'register');
 
-      if (error) {
-        throw error;
-      }
-
+    if (result.success) {
       onSuccess?.('確認メールを再送しました。届かない場合は迷惑メールも確認してください。');
-    } catch (error: any) {
-      const errorMessage = error?.message ?? '再送に失敗しました。時間をおいてお試しください。';
+    } else {
+      const errorMessage = result.error ?? '再送に失敗しました。時間をおいてお試しください。';
       onError?.(errorMessage);
       setErrors({ general: errorMessage });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -251,25 +193,8 @@ export default function EmailAuthForm({ onSuccess, onError, onNavigateToLogin }:
   // 確認メール送信後の表示
   if (emailSent) {
     return (
-      <div className="text-center space-y-4">
-        <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg shadow-sm">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <p className="text-sm font-medium">
-                確認メールを送信しました
-              </p>
-              <p className="text-sm mt-1">
-                {email} に送信されたメール内のリンクをクリックしてアカウントを有効化してください。
-              </p>
-            </div>
-          </div>
-        </div>
-        
+      <div className="text-center space-y-2">
+        {/* 成功メッセージはregister/page.tsxで表示されるため、ここには表示しない */}
         <div className="space-y-2">
           <button
             onClick={handleResendEmail}
@@ -293,23 +218,6 @@ export default function EmailAuthForm({ onSuccess, onError, onNavigateToLogin }:
 
   return (
     <div className="space-y-4">
-      {/* エラーメッセージ */}
-      {errors.general && mounted && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg shadow-sm">
-          <div className="flex items-center justify-between">
-            <span>{errors.general}</span>
-            {errors.showLoginButton && onNavigateToLogin && (
-              <button
-                onClick={onNavigateToLogin}
-                className="ml-2 text-sm font-medium text-blue-600 hover:text-blue-500 underline transition-colors"
-              >
-                ログイン画面へ
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
       {/* メールアドレス入力欄 */}
       <div>
         <label htmlFor="email" className="sr-only">

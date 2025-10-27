@@ -7,7 +7,6 @@ import Footer from '@/components/layout/Footer';
 import { useAuth } from '../../lib/useAuth';
 import { getProfileClient } from '../../lib/profile-client';
 import { getProfileFromAuth } from '../../lib/profile-fallback';
-import { debugAuth } from '../../lib/debug-auth';
 import ProfileDisplay from '../../components/profile/ProfileDisplay';
 import type { User } from '../../types/auth';
 
@@ -28,9 +27,6 @@ export default function ProfilePage() {
       }
 
       try {
-        // デバッグ情報を出力
-        await debugAuth();
-        
         // まず通常のプロフィール取得を試行
         let result = await getProfileClient();
         

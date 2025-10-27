@@ -45,6 +45,17 @@ export const useCartStore = create<CartState>()(
             },
           });
 
+          // 未認証の場合（401）は空のカートを設定してエラーを出さない
+          if (response.status === 401) {
+            set({
+              cart: null,
+              items: [],
+              isLoading: false,
+              error: null,
+            });
+            return;
+          }
+
           if (!response.ok) {
             throw new Error('カートの取得に失敗しました');
           }
@@ -59,9 +70,12 @@ export const useCartStore = create<CartState>()(
           });
         } catch (error) {
           console.error('カート読み込みエラー:', error);
+          // エラーを表示せず、空のカートを設定
           set({
-            error: error instanceof Error ? error.message : 'カートの読み込みに失敗しました',
+            cart: null,
+            items: [],
             isLoading: false,
+            error: null,
           });
         }
       },

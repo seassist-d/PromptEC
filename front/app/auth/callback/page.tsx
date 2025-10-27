@@ -9,6 +9,28 @@ export default function AuthCallbackPage() {
   const router = useRouter();
 
   useEffect(() => {
+    // 遷移先決定の共通関数
+    const routeAfterAuth = async (userId: string) => {
+      // user_profiles から onboarding_completed を見る
+      const { data: profileData, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('onboarding_completed')
+        .eq('user_id', userId)
+        .single();
+
+      console.log('[routeAfterAuth] profileData:', profileData, 'profileError:', profileError);
+
+      const isNewUser = !profileData || profileData.onboarding_completed === false;
+
+      if (isNewUser) {
+        console.log('[routeAfterAuth] New user -> /profile/setup');
+        router.push('/profile/setup');
+      } else {
+        console.log('[routeAfterAuth] Existing user -> /');
+        router.push('/');
+      }
+    };
+
     const handleAuthCallback = async () => {
       try {
         console.log('=== AUTH CALLBACK DEBUG ===');
@@ -57,23 +79,22 @@ export default function AuthCallbackPage() {
           return;
         }
         
-        // メール認証のcode処理（直接リダイレクト版）
+        // 1) codeだけで戻ってきたとき（メール認証）
         if (code) {
-          console.log('=== EMAIL AUTH CODE PROCESSING ===');
-          console.log('Processing code:', code);
-          console.log('User is already confirmed in Supabase, redirecting directly...');
-          
-          // ユーザーは既にSupabaseで認証されているので、直接プロフィール設定へ
-          if (source === 'register') {
-            console.log('Redirecting to profile setup (new user)');
+          console.log('Auth callback with code. Checking session...');
+          const { data: { session } } = await supabase.auth.getSession();
+
+          if (!session || !session.user) {
+            console.log('No session yet, treat as new user');
             router.push('/profile/setup');
-          } else {
-            console.log('Redirecting to top page (existing user)');
-            router.push('/');
+            return;
           }
+
+          await routeAfterAuth(session.user.id);
           return;
         }
         
+        // 2) access_token / refresh_token が付いてくるケース (OAuthでtokens返ってきた場合)
         if (finalAccessToken && finalRefreshToken) {
           // トークンの有効性を確認
           console.log('Validating token before setting session...');
@@ -105,60 +126,9 @@ export default function AuthCallbackPage() {
             console.log('Session set successfully:', data.session.user.email);
             console.log('User email confirmed:', data.session.user.email_confirmed_at);
             
-            // 既存ユーザーかどうかを判定（ユーザー作成日時ベース）
-            try {
-              console.log('=== USER CHECK START ===');
-              console.log('Source:', source);
-              console.log('User ID:', data.session.user.id);
-              console.log('User email:', data.session.user.email);
-              console.log('User created_at:', data.session.user.created_at);
-              
-              // ユーザーの作成日時をチェック
-              const userCreatedAt = new Date(data.session.user.created_at);
-              const now = new Date();
-              const timeDiff = now.getTime() - userCreatedAt.getTime();
-              const isNewUser = timeDiff < 60000; // 1分以内に作成されたユーザーは新規と判定
-              
-              console.log('User creation check:', {
-                userCreatedAt: userCreatedAt.toISOString(),
-                now: now.toISOString(),
-                timeDiffMs: timeDiff,
-                timeDiffMinutes: Math.round(timeDiff / 60000),
-                isNewUser
-              });
-
-              if (source === 'register') {
-                console.log('=== REGISTER PAGE CHECK ===');
-                console.log('Entering register branch');
-                // 新規登録ページから来た場合
-                if (isNewUser) {
-                  // 新規ユーザー
-                  console.log('=== NEW USER DETECTED (created within 1 minute) ===');
-                  console.log('Redirecting to profile setup...');
-                  router.push('/profile/setup');
-                  return;
-                } else {
-                  // 既存ユーザーが新規登録を試みた
-                  console.log('=== EXISTING USER TRIED TO REGISTER (created more than 1 minute ago) ===');
-                  console.log('Redirecting to top page...');
-                  router.push('/');
-                  return;
-                }
-              } else {
-                // ログインページから来た場合 = 既存ユーザー
-                console.log('=== LOGIN PAGE CHECK ===');
-                console.log('Entering login branch, source:', source);
-                console.log('Redirecting to top page...');
-                router.push('/');
-                return;
-              }
-              
-            } catch (profileCheckError) {
-              console.error('Profile check failed:', profileCheckError);
-              // エラーの場合もトップページへ（認証は成功しているため）
-              router.push('/');
-              return;
-            }
+            // セットした session からユーザーIDを取り出して判定
+            await routeAfterAuth(data.session.user.id);
+            return;
           } else {
             console.log('No session found after setting tokens');
           }
@@ -166,7 +136,7 @@ export default function AuthCallbackPage() {
           console.log('No tokens found in URL parameters or hash');
         }
         
-        // 既存のセッションを確認
+        // 3) 既にサインイン済みの状態で callback に来た場合（リロードなど）
         console.log('Checking existing session...');
         const { data: { session }, error: sessionCheckError } = await supabase.auth.getSession();
         
@@ -178,55 +148,10 @@ export default function AuthCallbackPage() {
         
         console.log('Existing session check result:', session);
         
-        if (session) {
+        if (session && session.user) {
           console.log('Existing session found:', session.user.email);
-          
-          // 既存セッションでも、source=registerの場合は既存ユーザーチェックを実行
-          if (source === 'register') {
-            console.log('=== EXISTING SESSION WITH REGISTER SOURCE ===');
-            console.log('Entering existing session register branch');
-            try {
-              // ユーザーの作成日時をチェック
-              const userCreatedAt = new Date(session.user.created_at);
-              const now = new Date();
-              const timeDiff = now.getTime() - userCreatedAt.getTime();
-              const isNewUser = timeDiff < 60000; // 1分以内に作成されたユーザーは新規と判定
-              
-              console.log('User creation check (existing session):', {
-                userCreatedAt: userCreatedAt.toISOString(),
-                now: now.toISOString(),
-                timeDiffMs: timeDiff,
-                timeDiffMinutes: Math.round(timeDiff / 60000),
-                isNewUser
-              });
-
-              if (isNewUser) {
-                // 新規ユーザー
-                console.log('=== NEW USER DETECTED (from existing session, created within 1 minute) ===');
-                console.log('Redirecting to profile setup...');
-                router.push('/profile/setup');
-                return;
-              } else {
-                // 既存ユーザーが新規登録を試みた
-                console.log('=== EXISTING USER TRIED TO REGISTER (from existing session, created more than 1 minute ago) ===');
-                console.log('Redirecting to top page...');
-                router.push('/');
-                return;
-              }
-            } catch (profileCheckError) {
-              console.error('Profile check failed:', profileCheckError);
-              // エラーの場合もトップページへ
-              router.push('/');
-              return;
-            }
-          } else {
-            // ログインページから来た場合 = 既存ユーザー
-            console.log('=== LOGIN PAGE CHECK (from existing session) ===');
-            console.log('Entering existing session login branch, source:', source);
-            console.log('Redirecting to top page...');
-            router.push('/');
-            return;
-          }
+          await routeAfterAuth(session.user.id);
+          return;
         } else {
           console.log('No session found, clearing storage and redirecting to login...');
           // セッションが見つからない場合、ストレージをクリアしてログインページへ
@@ -251,3 +176,4 @@ export default function AuthCallbackPage() {
     </div>
   );
 }
+

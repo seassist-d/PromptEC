@@ -8,7 +8,18 @@ if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_A
   );
 }
 
-export const supabase = createClient();
+const supabase = createClient();
 
+// 認証状態をクリアするヘルパー関数
+export const clearAuthState = async (): Promise<void> => {
+  try {
+    await supabase.auth.signOut();
+    console.log('✅ 認証状態をクリアしました');
+  } catch (error) {
+    console.error('認証状態のクリアエラー:', error);
+    // エラーが発生しても処理を続行する（既に未ログイン状態の場合など）
+  }
+};
 
+export { supabase };
 

@@ -299,7 +299,10 @@ CREATE TRIGGER trigger_auto_grant_entitlements
 
 -- ユーザープロフィール作成時の自動残高レコード作成
 CREATE OR REPLACE FUNCTION auto_create_seller_balance()
-RETURNS trigger AS $$
+RETURNS trigger 
+SECURITY DEFINER
+SET search_path = public
+AS $$
 BEGIN
     -- ユーザープロフィールが作成された時に残高レコードを作成
     INSERT INTO public.seller_balances (seller_id, available_jpy, pending_jpy, updated_at)
@@ -317,7 +320,10 @@ CREATE TRIGGER trigger_auto_create_seller_balance
 
 -- 新規ユーザー登録時にプロフィールを自動作成する関数
 CREATE OR REPLACE FUNCTION create_profile_for_new_user()
-RETURNS trigger AS $$
+RETURNS trigger 
+SECURITY DEFINER
+SET search_path = public
+AS $$
 BEGIN
     INSERT INTO public.user_profiles (user_id, display_name, created_at, updated_at)
     VALUES (
