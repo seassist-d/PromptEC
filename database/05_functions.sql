@@ -433,3 +433,16 @@ BEGIN
     END IF;
 END;
 $$ LANGUAGE plpgsql;
+
+-- 管理者権限チェック関数
+CREATE OR REPLACE FUNCTION is_admin(check_user_id uuid)
+RETURNS boolean AS $$
+BEGIN
+    RETURN EXISTS (
+        SELECT 1 
+        FROM public.user_profiles
+        WHERE user_profiles.user_id = check_user_id
+        AND user_profiles.role = 'admin'
+    );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;

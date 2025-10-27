@@ -194,6 +194,18 @@ export default function Header() {
                       >
                         プロフィール編集
                       </Link>
+                      {profileUser?.role === 'admin' && (
+                        <>
+                          <div className="border-t border-gray-100"></div>
+                          <Link
+                            href="/admin"
+                            className="block px-4 py-2 text-sm text-red-700 hover:bg-red-50 font-semibold"
+                            onClick={() => setIsDropdownOpen(false)}
+                          >
+                            🛡️ 管理者ダッシュボード
+                          </Link>
+                        </>
+                      )}
                       <div className="border-t border-gray-100"></div>
                       <button
                         onClick={() => {
