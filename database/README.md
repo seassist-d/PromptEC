@@ -22,7 +22,9 @@ database/
 ├── migrations/                    # マイグレーション用ファイル（一時的なデータ移行用）
 │   ├── migrate_existing_prompts_to_versions.sql
 │   ├── migrate_prompt_assets.sql
-│   └── migrate_prompt_assets_bypass_rls.sql
+│   ├── fix_existing_prompts_status.sql
+│   ├── add_admin_actions_enhancements.sql
+│   └── README_ADMIN_ENHANCEMENTS.md
 └── README.md                      # このファイル
 ```
 
