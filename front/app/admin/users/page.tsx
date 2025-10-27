@@ -6,6 +6,8 @@ import { createClient } from '@/lib/supabase-browser';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import AdvancedFilters from '@/components/admin/AdvancedFilters';
+import Pagination from '@/components/admin/Pagination';
 
 interface User {
   user_id: string;
@@ -304,7 +306,7 @@ export default function AdminUsersPage() {
           <div className="flex items-center justify-between">
             <h1 className="text-3xl font-bold text-gray-900">ユーザー管理</h1>
             {pagination && (
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-gray-900">
                 合計: {pagination.total}人
               </div>
             )}
@@ -374,6 +376,15 @@ export default function AdminUsersPage() {
             </div>
           </div>
         </div>
+
+        {/* 高度なフィルター */}
+        <AdvancedFilters
+          onFilterChange={(filters) => {
+            console.log('フィルター変更:', filters);
+            // ここでフィルター適用のロジックを実装
+          }}
+          searchableColumns={['display_name']}
+        />
 
         {/* エラー表示 */}
         {error && (
@@ -499,8 +510,17 @@ export default function AdminUsersPage() {
 
           {/* ページネーション */}
           {pagination && pagination.totalPages > 1 && (
-            <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-              <div className="flex-1 flex justify-between sm:hidden">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={pagination.totalPages}
+              total={pagination.total}
+              limit={pagination.limit}
+              onPageChange={setCurrentPage}
+            />
+          )}
+          {/* 旧コード削除 - 以下不要 */}
+          {/* 
+            <div className="flex-1 flex justify-between sm:hidden">
                 <button
                   onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                   disabled={currentPage === 1}
@@ -580,7 +600,7 @@ export default function AdminUsersPage() {
                 </div>
               </div>
             </div>
-          )}
+            */}
         </div>
       </div>
 

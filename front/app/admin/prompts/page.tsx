@@ -4,6 +4,11 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase-browser';
 import Link from 'next/link';
+import toast from 'react-hot-toast';
+import ConfirmDialog from '@/components/admin/ConfirmDialog';
+import PromptTable from '@/components/admin/PromptTable';
+import AdvancedFilters from '@/components/admin/AdvancedFilters';
+import Pagination from '@/components/admin/Pagination';
 
 interface Prompt {
   id: string;
@@ -49,6 +54,8 @@ export default function AdminPromptsPage() {
     totalPages: 0
   });
   const [currentPage, setCurrentPage] = useState(1);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<{ promptId: string; action: 'approve' | 'reject' | 'suspend'; } | null>(null);
 
   useEffect(() => {
     checkAdmin();
@@ -95,47 +102,74 @@ export default function AdminPromptsPage() {
       } else {
         const errorData = await response.json().catch(() => ({ error: '不明なエラー' }));
         console.error('プロンプト取得に失敗しました:', errorData);
-        alert(`エラー: ${errorData.error || 'プロンプトの取得に失敗しました'}`);
+        toast.error(`エラー: ${errorData.error || 'プロンプトの取得に失敗しました'}`);
       }
     } catch (error) {
       console.error('プロンプト取得エラー:', error);
-      alert('プロンプトの取得中にエラーが発生しました');
+      toast.error('プロンプトの取得中にエラーが発生しました');
     }
   };
 
-  const handleApprove = async (promptId: string, action: 'approve' | 'reject' | 'suspend', reason?: string) => {
+  const handleApprove = (promptId: string, action: 'approve' | 'reject' | 'suspend') => {
+    setConfirmAction({ promptId, action });
+    setShowConfirm(true);
+  };
+
+  const confirmApprove = async () => {
+    if (!confirmAction) return;
+
+    const { promptId, action } = confirmAction;
+    const loadingToast = toast.loading('処理中...');
+
+    setProcessing(promptId);
+    setShowConfirm(false);
+    
+    try {
+      const response = await fetch(`/api/admin/prompts/${promptId}/approve`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        toast.success(data.message || '処理が完了しました', { id: loadingToast });
+        fetchPrompts();
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.error || 'エラーが発生しました', { id: loadingToast });
+      }
+    } catch (error) {
+      console.error('承認エラー:', error);
+      toast.error('エラーが発生しました', { id: loadingToast });
+    } finally {
+      setProcessing(null);
+      setConfirmAction(null);
+    }
+  };
+
+  const getConfirmMessage = (action: 'approve' | 'reject' | 'suspend') => {
     const messages = {
       approve: 'このプロンプトを承認しますか？',
       reject: 'このプロンプトを削除しますか？この操作は取り消せません。',
       suspend: 'このプロンプトを停止しますか？'
     };
+    return messages[action];
+  };
 
-    if (!confirm(messages[action])) {
-      return;
-    }
+  const getConfirmTitle = (action: 'approve' | 'reject' | 'suspend') => {
+    const titles = {
+      approve: 'プロンプト承認',
+      reject: 'プロンプト削除',
+      suspend: 'プロンプト停止'
+    };
+    return titles[action];
+  };
 
-    setProcessing(promptId);
-    try {
-      const response = await fetch(`/api/admin/prompts/${promptId}/approve`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, reason })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        alert(data.message);
-        fetchPrompts();
-      } else {
-        const errorData = await response.json();
-        alert(errorData.error || 'エラーが発生しました');
-      }
-    } catch (error) {
-      console.error('承認エラー:', error);
-      alert('エラーが発生しました');
-    } finally {
-      setProcessing(null);
-    }
+  const getConfirmType = (action: 'approve' | 'reject' | 'suspend'): 'danger' | 'warning' | 'info' => {
+    if (action === 'reject') return 'danger';
+    if (action === 'suspend') return 'warning';
+    return 'info';
   };
 
   const getStatusBadgeColor = (status: string) => {
@@ -164,27 +198,27 @@ export default function AdminPromptsPage() {
     return <div className="min-h-screen flex items-center justify-center"><div className="text-lg">読み込み中...</div></div>;
   }
 
-  return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    return (
+    <div className="min-h-screen bg-gray-50 p-3 md:p-4">
       <div className="max-w-7xl mx-auto">
         {/* ヘッダー */}
-        <div className="mb-6">
-          <div className="mb-4 space-x-4">
-            <Link href="/" className="inline-flex items-center text-gray-600 hover:text-gray-900 transition-colors">
+        <div className="mb-4 md:mb-6">
+          <div className="mb-3 md:mb-4 flex flex-wrap items-center gap-2 md:gap-4">
+            <Link href="/" className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 transition-colors">
               <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
               </svg>
               トップページ
             </Link>
-            <span className="text-gray-400">|</span>
-            <Link href="/admin" className="inline-flex items-center text-blue-600 hover:text-blue-800 transition-colors">
+            <span className="text-gray-400 hidden md:inline">|</span>
+            <Link href="/admin" className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 transition-colors">
               <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
-              ダッシュボードに戻る
+              ダッシュボード
             </Link>
           </div>
-          <h1 className="text-3xl font-bold">プロンプト管理</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">プロンプト管理</h1>
         </div>
 
         {/* フィルター */}
@@ -209,144 +243,54 @@ export default function AdminPromptsPage() {
           </div>
         </div>
 
+        {/* 高度なフィルター */}
+        <AdvancedFilters
+          onFilterChange={(filters) => {
+            console.log('フィルター変更:', filters);
+            // ここでフィルター適用のロジックを実装
+          }}
+          searchableColumns={['title', 'short_description']}
+        />
+
         {/* プロンプト一覧 */}
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">タイトル</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">出品者</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">価格</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">統計</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ステータス</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">作成日</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {prompts.map(prompt => (
-                  <tr key={prompt.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900 max-w-xs truncate">{prompt.title}</div>
-                      <div className="text-sm text-gray-500 max-w-xs truncate">{prompt.short_description}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        {prompt.user_profiles?.avatar_url ? (
-                          <img
-                            className="h-8 w-8 rounded-full mr-2"
-                            src={prompt.user_profiles.avatar_url}
-                            alt={prompt.user_profiles.display_name || ''}
-                          />
-                        ) : (
-                          <div className="h-8 w-8 rounded-full mr-2 bg-gray-300 flex items-center justify-center">
-                            <span className="text-xs text-gray-600">
-                              {(prompt.user_profiles?.display_name || prompt.user_profiles?.email || 'N/A')[0]}
-                            </span>
-                          </div>
-                        )}
-                        <div className="text-sm">
-                          <div className="font-medium text-gray-900">{prompt.user_profiles?.display_name || 'N/A'}</div>
-                          <div className="text-gray-500">{prompt.user_profiles?.email}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      ¥{prompt.price_jpy.toLocaleString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <div>👁 {prompt.view_count}</div>
-                      <div>❤️ {prompt.like_count}</div>
-                      {prompt.ratings_count > 0 && (
-                        <div>⭐ {prompt.avg_rating.toFixed(1)} ({prompt.ratings_count})</div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeColor(prompt.status)}`}>
-                        {getStatusLabel(prompt.status)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(prompt.created_at).toLocaleDateString('ja-JP')}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex flex-col gap-1">
-                        {prompt.status === 'pending' && (
-                          <>
-                            <button
-                              onClick={() => handleApprove(prompt.id, 'approve')}
-                              disabled={processing === prompt.id}
-                              className="px-3 py-1 text-green-600 hover:text-green-900 hover:bg-green-50 rounded disabled:opacity-50 transition-colors"
-                            >
-                              承認
-                            </button>
-                            <button
-                              onClick={() => handleApprove(prompt.id, 'reject')}
-                              disabled={processing === prompt.id}
-                              className="px-3 py-1 text-red-600 hover:text-red-900 hover:bg-red-50 rounded disabled:opacity-50 transition-colors"
-                            >
-                              削除
-                            </button>
-                          </>
-                        )}
-                        {prompt.status === 'published' && (
-                          <button
-                            onClick={() => handleApprove(prompt.id, 'suspend')}
-                            disabled={processing === prompt.id}
-                            className="px-3 py-1 text-orange-600 hover:text-orange-900 hover:bg-orange-50 rounded disabled:opacity-50 transition-colors"
-                          >
-                            停止
-                          </button>
-                        )}
-                        <Link 
-                          href={`/prompts/${prompt.slug}`}
-                          className="px-3 py-1 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded transition-colors inline-block text-center"
-                          target="_blank"
-                        >
-                          詳細
-                        </Link>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <PromptTable
+          prompts={prompts}
+          onApprove={handleApprove}
+          processing={processing}
+          getStatusBadgeColor={getStatusBadgeColor}
+          getStatusLabel={getStatusLabel}
+        />
+
+        {/* ページネーション */}
+        {pagination.totalPages > 1 && (
+          <div className="bg-white rounded-lg shadow mt-4">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={pagination.totalPages}
+              total={pagination.total}
+              limit={pagination.limit}
+              onPageChange={setCurrentPage}
+            />
           </div>
-          {prompts.length === 0 && (
-            <div className="p-6 text-center text-gray-500">
-              該当するプロンプトがありません
-            </div>
-          )}
-          {/* ページネーション */}
-          {pagination.totalPages > 1 && (
-            <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-              <div className="text-sm text-gray-700">
-                全 {pagination.total} 件中 {((currentPage - 1) * pagination.limit) + 1} 〜 {Math.min(currentPage * pagination.limit, pagination.total)} 件を表示
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="px-3 py-1 border border-gray-300 rounded disabled:opacity-50 hover:bg-gray-50 transition-colors"
-                >
-                  前へ
-                </button>
-                <span className="px-3 py-1 text-sm">
-                  {currentPage} / {pagination.totalPages}
-                </span>
-                <button
-                  onClick={() => setCurrentPage(p => Math.min(pagination.totalPages, p + 1))}
-                  disabled={currentPage === pagination.totalPages}
-                  className="px-3 py-1 border border-gray-300 rounded disabled:opacity-50 hover:bg-gray-50 transition-colors"
-                >
-                  次へ
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
+        )}
       </div>
+
+      {/* 確認ダイアログ */}
+      {confirmAction && (
+        <ConfirmDialog
+          title={getConfirmTitle(confirmAction.action)}
+          message={getConfirmMessage(confirmAction.action)}
+          isOpen={showConfirm}
+          onConfirm={confirmApprove}
+          onCancel={() => {
+            setShowConfirm(false);
+            setConfirmAction(null);
+          }}
+          confirmText={confirmAction.action === 'approve' ? '承認' : confirmAction.action === 'reject' ? '削除' : '停止'}
+          cancelText="キャンセル"
+          type={getConfirmType(confirmAction.action)}
+        />
+      )}
     </div>
   );
 }
