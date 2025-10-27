@@ -1042,7 +1042,7 @@ for-each@^0.3.3, for-each@^0.3.5:
 
 framer-motion@^12.23.24:
   version "12.23.24"
-  resolved "https://registry.yarnpkg.com/framer-motion/-/framer-motion-12.23.24.tgz#4895b67e880bd2b1089e61fbaa32ae802fc24b8c"
+  resolved "https://registry.npmjs.org/framer-motion/-/framer-motion-12.23.24.tgz"
   integrity sha512-HMi5HRoRCTou+3fb3h9oTLyJGBxHfW+HnNE25tAXOvVx/IvwMHK0cx7IR4a2ZU6sh3IX1Z+4ts32PcYBOqka8w==
   dependencies:
     motion-dom "^12.23.23"
@@ -1459,14 +1459,14 @@ minimist@^1.2.0, minimist@^1.2.6:
 
 motion-dom@^12.23.23:
   version "12.23.23"
-  resolved "https://registry.yarnpkg.com/motion-dom/-/motion-dom-12.23.23.tgz#8f874333ea1a04ee3a89eb928f518b463d589e0e"
+  resolved "https://registry.npmjs.org/motion-dom/-/motion-dom-12.23.23.tgz"
   integrity sha512-n5yolOs0TQQBRUFImrRfs/+6X4p3Q4n1dUEqt/H58Vx7OW6RF+foWEgmTVDhIWJIMXOuNNL0apKH2S16en9eiA==
   dependencies:
     motion-utils "^12.23.6"
 
 motion-utils@^12.23.6:
   version "12.23.6"
-  resolved "https://registry.yarnpkg.com/motion-utils/-/motion-utils-12.23.6.tgz#fafef80b4ea85122dd0d6c599a0c63d72881f312"
+  resolved "https://registry.npmjs.org/motion-utils/-/motion-utils-12.23.6.tgz"
   integrity sha512-eAWoPgr4eFEOFfg2WjIsMoqJTW6Z8MTUCgn/GZ3VRpClWBdnbjryiA3ZSNLyxCTmCQx4RmYX6jX1iWHbenUPNQ==
 
 ms@^2.1.1, ms@^2.1.3:
@@ -1640,7 +1640,7 @@ qs@^6.11.0:
 queue-microtask@^1.2.2:
   version "1.2.3"
 
-"react-dom@^18.2.0 || 19.0.0-rc-de68d2f4-20241204 || ^19.0.0", react-dom@>=16, "react-dom@>=16.8.0 <20.0.0", react-dom@19.1.0:
+"react-dom@^18.0.0 || ^19.0.0", "react-dom@^18.2.0 || 19.0.0-rc-de68d2f4-20241204 || ^19.0.0", react-dom@>=16, "react-dom@>=16.8.0 <20.0.0", react-dom@19.1.0:
   version "19.1.0"
   dependencies:
     scheduler "^0.26.0"
@@ -1654,7 +1654,7 @@ react-hot-toast@^2.6.0:
 react-is@^16.13.1:
   version "16.13.1"
 
-"react@^18.2.0 || 19.0.0-rc-de68d2f4-20241204 || ^19.0.0", react@^19.1.0, "react@>= 16.8.0 || 17.x.x || ^18.0.0-0 || ^19.0.0-0", react@>=16, "react@>=16.8.0 <20.0.0", react@>=18.0.0, react@19.1.0:
+"react@^18.0.0 || ^19.0.0", "react@^18.2.0 || 19.0.0-rc-de68d2f4-20241204 || ^19.0.0", react@^19.1.0, "react@>= 16.8.0 || 17.x.x || ^18.0.0-0 || ^19.0.0-0", react@>=16, "react@>=16.8.0 <20.0.0", react@>=18.0.0, react@19.1.0:
   version "19.1.0"
 
 reflect.getprototypeof@^1.0.6, reflect.getprototypeof@^1.0.9:
@@ -1958,7 +1958,7 @@ tsconfig-paths@^3.15.0:
     minimist "^1.2.6"
     strip-bom "^3.0.0"
 
-tslib@^2.8.0, tslib@2.8.1:
+tslib@^2.4.0, tslib@^2.8.0, tslib@2.8.1:
   version "2.8.1"
 
 type-check@^0.4.0, type-check@~0.4.0:

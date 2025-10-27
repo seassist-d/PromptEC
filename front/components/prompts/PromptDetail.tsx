@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { PromptDetail as PromptDetailType } from '@/types/prompt';
+import { PromptDetail as PromptDetailType, Review } from '@/types/prompt';
 import { useAuth } from '@/lib/useAuth';
 import AddToCartButton from '../cart/AddToCartButton';
 import LikeButton from './LikeButton';
+import ReviewForm from '../reviews/ReviewForm';
+import ReviewList from '../reviews/ReviewList';
 
 interface PromptDetailProps {
   slug: string;
@@ -16,6 +18,12 @@ export default function PromptDetail({ slug }: PromptDetailProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user, loading: authLoading } = useAuth();
+  
+  // レビュー関連の状態
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [existingReview, setExistingReview] = useState<{ id: string; rating: number; comment?: string } | null>(null);
+  const [canReview, setCanReview] = useState(false);
 
   useEffect(() => {
     const fetchPrompt = async () => {
@@ -32,6 +40,14 @@ export default function PromptDetail({ slug }: PromptDetailProps) {
         
         const data = await response.json();
         setPrompt(data);
+        
+        // レビューを取得
+        await fetchReviews(data.id);
+        
+        // レビュー投稿可能かチェック
+        if (user) {
+          await checkCanReview(data.id);
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'エラーが発生しました');
       } finally {
@@ -40,7 +56,44 @@ export default function PromptDetail({ slug }: PromptDetailProps) {
     };
 
     fetchPrompt();
-  }, [slug]);
+  }, [slug, user]);
+
+  // レビューを取得
+  const fetchReviews = async (promptId: string) => {
+    try {
+      const response = await fetch(`/api/reviews?prompt_id=${promptId}`);
+      if (!response.ok) {
+        throw new Error('レビューの取得に失敗しました');
+      }
+      const data = await response.json();
+      setReviews(data.reviews || []);
+    } catch (err) {
+      console.error('レビュー取得エラー:', err);
+    }
+  };
+
+  // レビュー投稿可能かチェック
+  const checkCanReview = async (promptId: string) => {
+    if (!user) {
+      setCanReview(false);
+      return;
+    }
+    
+    // 既にレビューしているかチェック
+    const myReview = reviews.find((r) => r.user_id === user.id);
+    
+    // 購入者チェックはAPI側で行うため、常にtrueにする
+    // （API側で権限チェックして、購入していない場合はエラーを返す）
+    setCanReview(!myReview);
+    
+    if (myReview) {
+      setExistingReview({
+        id: myReview.id,
+        rating: myReview.rating,
+        comment: myReview.comment || ''
+      });
+    }
+  };
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('ja-JP', {
@@ -77,6 +130,45 @@ export default function PromptDetail({ slug }: PromptDetailProps) {
     } catch (error) {
       console.error('Prompt deletion error:', error);
       alert(error instanceof Error ? error.message : 'プロンプトの削除に失敗しました');
+    }
+  };
+
+  // レビュー投稿・更新のコールバック
+  const handleReviewSubmit = async () => {
+    setShowReviewForm(false);
+    setExistingReview(null);
+    if (prompt) {
+      await fetchReviews(prompt.id);
+      if (user) {
+        await checkCanReview(prompt.id);
+      }
+      // プロンプト情報も再取得して平均評価を更新
+      await fetchPrompt();
+    }
+  };
+
+  // レビュー更新のコールバック
+  const handleReviewUpdate = async () => {
+    if (prompt) {
+      await fetchReviews(prompt.id);
+      if (user) {
+        await checkCanReview(prompt.id);
+      }
+      // プロンプト情報も再取得して平均評価を更新
+      await fetchPrompt();
+    }
+  };
+
+  // プロンプト情報を再取得
+  const fetchPrompt = async () => {
+    try {
+      const response = await fetch(`/api/prompts/${slug}`);
+      if (response.ok) {
+        const data = await response.json();
+        setPrompt(data);
+      }
+    } catch (err) {
+      console.error('プロンプト再取得エラー:', err);
     }
   };
 
@@ -337,44 +429,42 @@ export default function PromptDetail({ slug }: PromptDetailProps) {
           )}
 
           {/* レビュー */}
-          {prompt.reviews && prompt.reviews.length > 0 && (
-            <div>
-              <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">レビュー</h2>
-              <div className="space-y-4">
-                {prompt.reviews.map((review) => (
-                  <div key={review.id} className="bg-white p-4 rounded-lg border">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center space-x-2">
-                        <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                          {review.user_avatar ? (
-                            <img
-                              src={review.user_avatar}
-                              alt={review.user_name}
-                              className="w-full h-full rounded-full object-cover"
-                            />
-                          ) : (
-                            <span className="text-gray-600 text-xs font-semibold">
-                              {review.user_name?.charAt(0) || '?'}
-                            </span>
-                          )}
-                        </div>
-                        <span className="font-semibold text-gray-900">{review.user_name}</span>
-                      </div>
-                      <div className="flex items-center">
-                        {renderStars(review.rating)}
-                      </div>
-                    </div>
-                    {review.comment && (
-                      <p className="text-gray-700 text-sm">{review.comment}</p>
-                    )}
-                    <p className="text-xs text-gray-500 mt-2">
-                      {formatDate(review.created_at)}
-                    </p>
-                  </div>
-                ))}
-              </div>
+          <div>
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900">レビュー ({reviews.length})</h2>
+              {canReview && !showReviewForm && (
+                <button
+                  onClick={() => setShowReviewForm(true)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors text-sm"
+                >
+                  レビューを投稿
+                </button>
+              )}
             </div>
-          )}
+
+            {/* レビュー投稿フォーム */}
+            {showReviewForm && prompt && user && (
+              <div className="mb-6 bg-gray-50 p-4 rounded-lg border">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  {existingReview ? 'レビューを編集' : 'レビューを投稿'}
+                </h3>
+                <ReviewForm
+                  promptId={prompt.id}
+                  existingReview={existingReview}
+                  onSuccess={handleReviewSubmit}
+                  onCancel={() => setShowReviewForm(false)}
+                />
+              </div>
+            )}
+
+            {/* レビューリスト */}
+            <ReviewList
+              promptId={prompt?.id || ''}
+              reviews={reviews}
+              currentUserId={user?.id}
+              onReviewUpdate={handleReviewUpdate}
+            />
+          </div>
 
           {/* 作成日 */}
           <div className="text-sm text-gray-500">

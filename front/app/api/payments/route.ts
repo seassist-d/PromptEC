@@ -83,11 +83,12 @@ export async function POST(request: NextRequest) {
     });
 
     // Stripe決済の場合はPaymentIntentを確認
+    // 注意: INSERT時はstatus='pending'として作成し、後でUPDATEしてトリガーを発動させる
     let paymentData: any = {
       order_id: orderId,
       provider_id: provider.id,
       amount_jpy: order.total_amount_jpy,
-      status: 'captured',
+      status: 'pending', // 最初は'pending'として作成
       raw_payload: JSON.stringify({
         method: paymentMethod,
         processed_at: new Date().toISOString(),
@@ -119,6 +120,22 @@ export async function POST(request: NextRequest) {
         { error: '決済の作成に失敗しました' },
         { status: 500 }
       );
+    }
+
+    // トリガーを発動させるためにUPDATEを実行
+    // これにより、auto_grant_entitlementsトリガーが発動し、注文statusが'paid'に更新される
+    console.log('決済ステータスを更新してトリガーを発動...');
+    const { error: updateError } = await supabase
+      .from('payments')
+      .update({
+        status: 'captured'
+      })
+      .eq('id', payment.id);
+
+    if (updateError) {
+      console.error('決済ステータス更新エラー:', updateError);
+    } else {
+      console.log('決済ステータス更新成功：トリガーが発動しました');
     }
 
     // 台帳エントリーを作成
@@ -237,6 +254,27 @@ export async function POST(request: NextRequest) {
       }
 
       console.log('台帳エントリー作成完了');
+
+      // seller_balancesを更新
+      console.log('seller_balancesを更新...');
+      for (const item of orderItems) {
+        const sellerId = item.prompts?.seller_id;
+        
+        if (!sellerId) {
+          continue;
+        }
+
+        // RPCを呼び出してseller_balancesを更新
+        const { error: balanceError } = await supabase.rpc('update_seller_balance', {
+          seller_uuid: sellerId
+        });
+
+        if (balanceError) {
+          console.error('seller_balances更新エラー:', balanceError);
+        } else {
+          console.log('seller_balances更新成功');
+        }
+      }
     }
 
     // カートをクリア

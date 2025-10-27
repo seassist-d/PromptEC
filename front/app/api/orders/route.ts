@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
 }
 
 // 注文履歴取得
-export async function GET(_request: NextRequest) {
+export async function GET() {
   try {
     const supabase = await createClient();
     
@@ -184,15 +184,20 @@ export async function GET(_request: NextRequest) {
         order_items (
           id,
           prompt_id,
+          prompt_version_id,
           unit_price_jpy,
           quantity,
           created_at,
-          prompts (
+          prompt_versions!inner (
             id,
-            title,
-            slug,
-            thumbnail_url,
-            short_description
+            version,
+            prompts!inner (
+              id,
+              title,
+              slug,
+              thumbnail_url,
+              short_description
+            )
           )
         ),
         payments (
