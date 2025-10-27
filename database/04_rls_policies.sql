@@ -8,6 +8,15 @@ DROP POLICY IF EXISTS "Users can manage their own subscriptions" ON public.subsc
 DROP POLICY IF EXISTS "Only admins can manage subscription plans" ON public.subscription_plans;
 DROP POLICY IF EXISTS "Active subscription plans are viewable by everyone" ON public.subscription_plans;
 DROP POLICY IF EXISTS "Only admins can view audit logs" ON public.audit_logs;
+DROP POLICY IF EXISTS "Payment providers are viewable by everyone" ON public.payment_providers;
+DROP POLICY IF EXISTS "Admins can manage all payout accounts" ON public.seller_payout_accounts;
+DROP POLICY IF EXISTS "Users can manage their own payout accounts" ON public.seller_payout_accounts;
+DROP POLICY IF EXISTS "Users can create payments for their orders" ON public.payments;
+DROP POLICY IF EXISTS "Admins can manage all payments" ON public.payments;
+DROP POLICY IF EXISTS "Admins can manage all prompt assets" ON public.prompt_assets;
+DROP POLICY IF EXISTS "Users can manage prompt assets for their own versions" ON public.prompt_assets;
+DROP POLICY IF EXISTS "Users can create order items" ON public.order_items;
+DROP POLICY IF EXISTS "Admins can manage all order items" ON public.order_items;
 DROP POLICY IF EXISTS "Only admins can insert ranking snapshots" ON public.ranking_snapshots;
 DROP POLICY IF EXISTS "Ranking snapshots are viewable by everyone" ON public.ranking_snapshots;
 DROP POLICY IF EXISTS "Public auto tags are viewable by everyone" ON public.auto_tags;
@@ -65,6 +74,7 @@ DROP POLICY IF EXISTS "Public profiles are viewable by everyone" ON public.user_
 
 -- RLSを有効化
 ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.payment_providers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seller_payout_accounts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.prompts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.prompt_versions ENABLE ROW LEVEL SECURITY;
@@ -110,6 +120,31 @@ CREATE POLICY "Users can insert their own profile" ON public.user_profiles
 -- 管理者は全ユーザーのプロフィールを更新可能
 CREATE POLICY "Admins can update any profile" ON public.user_profiles
   FOR UPDATE USING (
+    EXISTS (
+      SELECT 1 FROM public.user_profiles 
+      WHERE user_id = auth.uid() AND role = 'admin'
+    )
+  );
+
+-- =============================================
+-- 決済プロバイダーテーブルのポリシー
+-- =============================================
+
+-- 決済プロバイダーは参照用なので、全員が閲覧可能にする
+CREATE POLICY "Payment providers are viewable by everyone" ON public.payment_providers
+  FOR SELECT USING (true);
+
+-- =============================================
+-- 出品者出金アカウントテーブルのポリシー
+-- =============================================
+
+-- ユーザーは自分の出金アカウントを閲覧・挿入・更新可能
+CREATE POLICY "Users can manage their own payout accounts" ON public.seller_payout_accounts
+  FOR ALL USING (auth.uid() = seller_id);
+
+-- 管理者は全出金アカウントを閲覧・更新可能
+CREATE POLICY "Admins can manage all payout accounts" ON public.seller_payout_accounts
+  FOR ALL USING (
     EXISTS (
       SELECT 1 FROM public.user_profiles 
       WHERE user_id = auth.uid() AND role = 'admin'
@@ -254,6 +289,25 @@ CREATE POLICY "Admins can view all prompt assets" ON public.prompt_assets
     )
   );
 
+-- プロンプトバージョン所有者は自分のバージョンのアセットを作成・更新可能
+CREATE POLICY "Users can manage prompt assets for their own versions" ON public.prompt_assets
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM public.prompt_versions pv
+      JOIN public.prompts p ON pv.prompt_id = p.id
+      WHERE pv.id = prompt_version_id AND p.seller_id = auth.uid()
+    )
+  );
+
+-- 管理者は全プロンプトアセットを管理可能
+CREATE POLICY "Admins can manage all prompt assets" ON public.prompt_assets
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM public.user_profiles 
+      WHERE user_id = auth.uid() AND role = 'admin'
+    )
+  );
+
 -- =============================================
 -- カートテーブルのポリシー
 -- =============================================
@@ -331,6 +385,24 @@ CREATE POLICY "Admins can view all order items" ON public.order_items
     )
   );
 
+-- ユーザーは注文アイテムを作成可能
+CREATE POLICY "Users can create order items" ON public.order_items
+  FOR INSERT WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.orders 
+      WHERE id = order_id AND buyer_id = auth.uid()
+    )
+  );
+
+-- 管理者は全注文アイテムを管理可能
+CREATE POLICY "Admins can manage all order items" ON public.order_items
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM public.user_profiles 
+      WHERE user_id = auth.uid() AND role = 'admin'
+    )
+  );
+
 -- =============================================
 -- 決済テーブルのポリシー
 -- =============================================
@@ -347,6 +419,24 @@ CREATE POLICY "Users can view their own payments" ON public.payments
 -- 管理者は全決済情報を閲覧可能
 CREATE POLICY "Admins can view all payments" ON public.payments
   FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM public.user_profiles 
+      WHERE user_id = auth.uid() AND role = 'admin'
+    )
+  );
+
+-- ユーザーは自分の注文の決済情報を作成可能
+CREATE POLICY "Users can create payments for their orders" ON public.payments
+  FOR INSERT WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.orders 
+      WHERE id = order_id AND buyer_id = auth.uid()
+    )
+  );
+
+-- 管理者は全決済情報を管理可能
+CREATE POLICY "Admins can manage all payments" ON public.payments
+  FOR ALL USING (
     EXISTS (
       SELECT 1 FROM public.user_profiles 
       WHERE user_id = auth.uid() AND role = 'admin'

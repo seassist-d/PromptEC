@@ -8,21 +8,25 @@
 
 ```
 database/
-├── 00_main_execution.sql      # メイン実行ファイル（確認用クエリ含む）
-├── 01_enums_fixed.sql        # Enum型の定義
-├── 02_tables.sql             # テーブルの作成
-├── 03_indexes.sql            # インデックスの作成
-├── 04_rls_policies.sql       # RLSポリシーの設定
-├── 05_functions.sql          # PostgreSQL関数の定義（安全な関数のみ）
-├── 06_triggers.sql           # トリガーの設定
-├── 07_seed_data.sql          # 初期データの投入
+├── 00_main_execution.sql           # メイン実行ファイル（確認用クエリ含む）
+├── 01_enums_fixed.sql             # Enum型の定義
+├── 02_tables.sql                  # テーブルの作成
+├── 03_indexes.sql                 # インデックスの作成
+├── 04_rls_policies.sql            # RLSポリシーの設定（統合済み）
+├── 05_functions.sql               # PostgreSQL関数の定義（安全な関数のみ）
+├── 06_triggers.sql                # トリガーの設定（台帳エントリー実装済み）
+├── 07_seed_data.sql               # 初期データの投入
 ├── 08_japanese_search_optional.sql # 日本語検索の高度な設定（オプション）
-├── 09_maintenance_functions.sql # メンテナンス用関数（破壊的操作を含む）
-├── 10_storage_rls.sql        # Storage RLSポリシーの設定
-└── README.md                 # このファイル
+├── 09_maintenance_functions.sql   # メンテナンス用関数（破壊的操作を含む）
+├── 10_storage_rls.sql             # Storage RLSポリシーの設定
+├── migrations/                    # マイグレーション用ファイル（一時的なデータ移行用）
+│   ├── migrate_existing_prompts_to_versions.sql
+│   ├── migrate_prompt_assets.sql
+│   └── migrate_prompt_assets_bypass_rls.sql
+└── README.md                      # このファイル
 ```
 
-**注意**: fix系・debug系の一時ファイルは削除済みです。必要に応じてメインファイルを直接編集してください。
+**注意**: fix系・debug系の一時ファイルはメインファイル（04_rls_policies.sql, 06_triggers.sql）に統合済みです。マイグレーションファイルは`migrations/`ディレクトリに移動しています。
 
 ## 実行手順
 
@@ -239,6 +243,16 @@ ON CONFLICT (id) DO NOTHING;
     - `ERROR: column "tablename" does not exist`が発生した場合
     - `pg_stat_user_tables`ビューの`tablename`カラムを`relname`に修正済み
     - PostgreSQLのバージョンに応じた適切なクエリに変更済み
+
+11. **RLSポリシーのエラー**
+    - `04_rls_policies.sql`にすべてのRLSポリシーが統合済み（fix_*_rls.sqlは統合・削除済み）
+
+12. **台帳エントリーのエラー**
+    - `06_triggers.sql`に台帳エントリー機能が実装済み（implement_ledger_entries.sqlは統合・削除済み）
+
+13. **マイグレーション用ファイルについて**
+    - `migrations/`ディレクトリ内のファイルは、既存データベースへの一時的な移行用です
+    - 新規環境の構築では通常実行不要です
 
 ### ログ確認
 ```sql

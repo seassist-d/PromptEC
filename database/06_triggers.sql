@@ -213,21 +213,23 @@ CREATE TRIGGER trigger_set_published_timestamp
 
 -- 決済完了時の所有権自動発行
 CREATE OR REPLACE FUNCTION auto_grant_entitlements()
-RETURNS trigger AS $$
+RETURNS trigger 
+SECURITY DEFINER
+SET search_path = public
+AS $$
 BEGIN
     -- 決済が成功した場合
-    IF NEW.status = 'captured' AND (OLD.status IS NULL OR OLD.status != 'captured') THEN
+    IF NEW.status = 'captured' AND (OLD IS NULL OR OLD.status IS NULL OR OLD.status != 'captured') THEN
         -- 注文アイテムに対して所有権を発行
         INSERT INTO public.entitlements (buyer_id, order_item_id, prompt_version_id)
-        SELECT 
-            o.buyer_id,
-            oi.id,
-            oi.prompt_version_id
+        SELECT o.buyer_id, oi.id, oi.prompt_version_id
         FROM public.orders o
         JOIN public.order_items oi ON o.id = oi.order_id
         WHERE o.id = NEW.order_id;
         
-        -- 売上台帳エントリーを作成
+        -- 台帳エントリーを作成（計算を整数で行う）
+        
+        -- 売上計上（+金額）
         INSERT INTO public.ledger_entries (entry_type, order_id, order_item_id, seller_id, amount_jpy, note)
         SELECT 
             'sale_gross'::ledger_entry_type,
@@ -241,39 +243,39 @@ BEGIN
         JOIN public.prompts p ON oi.prompt_id = p.id
         WHERE o.id = NEW.order_id;
         
-        -- 決済手数料エントリー（仮で3.6%）
+        -- 決済手数料（3.6%を整数で計算：36/1000）
         INSERT INTO public.ledger_entries (entry_type, order_id, seller_id, amount_jpy, note)
         SELECT 
             'payment_fee'::ledger_entry_type,
             o.id,
             p.seller_id,
-            -ROUND(oi.unit_price_jpy * 0.036),
+            -((oi.unit_price_jpy * 36) / 1000)::bigint,
             '決済手数料'
         FROM public.orders o
         JOIN public.order_items oi ON o.id = oi.order_id
         JOIN public.prompts p ON oi.prompt_id = p.id
         WHERE o.id = NEW.order_id;
         
-        -- プラットフォーム手数料エントリー（20%）
+        -- プラットフォーム手数料（20%を整数で計算）
         INSERT INTO public.ledger_entries (entry_type, order_id, seller_id, amount_jpy, note)
         SELECT 
             'platform_fee'::ledger_entry_type,
             o.id,
             p.seller_id,
-            -ROUND(oi.unit_price_jpy * 0.20),
+            -(oi.unit_price_jpy / 5)::bigint,
             'プラットフォーム手数料'
         FROM public.orders o
         JOIN public.order_items oi ON o.id = oi.order_id
         JOIN public.prompts p ON oi.prompt_id = p.id
         WHERE o.id = NEW.order_id;
         
-        -- 出品者純利益エントリー（80% - 決済手数料）
+        -- 出品者純利益（80% - 決済手数料を整数で計算）
         INSERT INTO public.ledger_entries (entry_type, order_id, seller_id, amount_jpy, note)
         SELECT 
             'seller_net'::ledger_entry_type,
             o.id,
             p.seller_id,
-            ROUND(oi.unit_price_jpy * 0.80 - oi.unit_price_jpy * 0.036),
+            ((oi.unit_price_jpy * 4 / 5) - ((oi.unit_price_jpy * 36) / 1000))::bigint,
             '出品者純利益'
         FROM public.orders o
         JOIN public.order_items oi ON o.id = oi.order_id
