@@ -15,16 +15,21 @@ export function useGoogleAuth(): UseGoogleAuthReturn {
       // 認証状態をクリアしてからGoogle認証
       await clearAuthState();
 
-      // 現在のページ（登録/ログイン）を判定
-      const isRegisterPage = window.location.pathname.includes('/register');
+      // 既存セッションがないことを確認
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        console.log('既存セッションをクリアします');
+        await supabase.auth.signOut();
+        await clearAuthState();
+      }
 
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?source=${isRegisterPage ? 'register' : 'login'}`,
+          redirectTo: `${window.location.origin}/auth/callback/social`,
           queryParams: {
             access_type: 'offline',
-            prompt: 'consent'
+            prompt: 'select_account'
           }
         }
       });

@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useEmailAuth } from '@/hooks/useEmailAuth';
+import { supabase } from '@/lib/supabaseClient';
 
 interface EmailAuthFormProps {
   onSuccess?: (message: string) => void;
@@ -10,6 +12,7 @@ interface EmailAuthFormProps {
 }
 
 export default function EmailAuthForm({ onSuccess, onError, onNavigateToLogin }: EmailAuthFormProps) {
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -77,14 +80,27 @@ export default function EmailAuthForm({ onSuccess, onError, onNavigateToLogin }:
       const result = await signUp(email, password, 'register');
 
       if (result.success) {
+        // 既存ユーザーの場合、直接ログイン処理
+        if (result.isExistingUser) {
+          // セッションを確認してトップページにリダイレクト
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session && session.user) {
+            console.log('既存ユーザーとしてログインしました');
+            onSuccess?.('ログインしました。');
+            // 短いディレイの後にトップページにリダイレクト
+            setTimeout(() => {
+              router.push('/');
+            }, 1500);
+            return;
+          }
+        }
+        
+        // 新規ユーザーの登録成功
         setEmailSent(true);
-        onSuccess?.('確認メールを送信しました。メール内のリンクをクリックしてアカウントを有効化してください。');
+        onSuccess?.('確認メールを送信しました。メールが届かない場合は、別のメールもしくはGoogle,Microsoftで続行してください。');
       } else {
         onError?.(result.error || '新規登録に失敗しました');
-        // errors.generalの表示は削除（register/page.tsxのerrorMessageのみ表示）
-        setErrors({ 
-          showLoginButton: result.error?.includes('既に登録されています') ? 'true' : undefined
-        });
+        setErrors({});
       }
     }
   };
@@ -138,10 +154,10 @@ export default function EmailAuthForm({ onSuccess, onError, onNavigateToLogin }:
     
     // 確認パスワードと比較
     if (confirmPassword && value !== confirmPassword) {
-      setErrors(prev => ({ ...prev, confirmPassword: 'パスワードが一致しません' }));
+      setErrors({ confirmPassword: 'パスワードが一致しません' });
     } else if (confirmPassword && value === confirmPassword) {
-      setErrors(prev => {
-        const newErrors = { ...prev };
+      setErrors((prev: Record<string, string>) => {
+        const newErrors: Record<string, string> = { ...prev };
         delete newErrors.confirmPassword;
         return newErrors;
       });
