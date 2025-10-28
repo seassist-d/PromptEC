@@ -25,7 +25,9 @@ export async function GET(request: NextRequest) {
     const sellerId = searchParams.get('seller_id');
 
     const dateRange = getDateRange(period);
+    const previousDateRange = getPreviousDateRange(period);
 
+    // 現期間のデータ
     const { data: salesOrders } = await supabase
       .from('orders')
       .select('id, order_number, total_amount_jpy, created_at, buyer_id, status')
@@ -36,6 +38,34 @@ export async function GET(request: NextRequest) {
     const totalRevenue = salesOrders?.reduce((sum, order) => sum + order.total_amount_jpy, 0) || 0;
     const totalOrders = salesOrders?.length || 0;
     const averageOrderValue = totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0;
+
+    // 前期間のデータ
+    const { data: previousSalesOrders } = await supabase
+      .from('orders')
+      .select('id, order_number, total_amount_jpy, created_at, buyer_id, status')
+      .eq('status', 'paid')
+      .gte('created_at', previousDateRange.start)
+      .lte('created_at', previousDateRange.end);
+
+    const previousTotalRevenue = previousSalesOrders?.reduce((sum, order) => sum + order.total_amount_jpy, 0) || 0;
+    const previousTotalOrders = previousSalesOrders?.length || 0;
+    const previousAverageOrderValue = previousTotalOrders > 0 ? Math.round(previousTotalRevenue / previousTotalOrders) : 0;
+
+    // 前期間のプラットフォーム手数料
+    const { data: previousPlatformFees } = await supabase
+      .from('ledger_entries')
+      .select('amount_jpy')
+      .eq('entry_type', 'platform_fee')
+      .gte('created_at', previousDateRange.start)
+      .lte('created_at', previousDateRange.end);
+
+    const previousPlatformFee = previousPlatformFees?.reduce((sum, fee) => sum + Math.abs(fee.amount_jpy), 0) || 0;
+
+    // 増減率計算
+    const calculateGrowthRate = (current: number, previous: number) => {
+      if (previous === 0) return current > 0 ? 100 : 0;
+      return ((current - previous) / previous) * 100;
+    };
 
     const { data: ledgerEntries } = await supabase
       .from('ledger_entries')
@@ -76,7 +106,19 @@ export async function GET(request: NextRequest) {
         totalPaymentFee,
         totalSellerPayout,
         platformRevenue: totalPlatformFee,
-        period
+        period,
+        growthRate: {
+          revenue: calculateGrowthRate(totalRevenue, previousTotalRevenue),
+          orders: calculateGrowthRate(totalOrders, previousTotalOrders),
+          averageOrderValue: calculateGrowthRate(averageOrderValue, previousAverageOrderValue),
+          platformRevenue: calculateGrowthRate(totalPlatformFee, previousPlatformFee)
+        },
+        previousPeriod: {
+          totalRevenue: previousTotalRevenue,
+          totalOrders: previousTotalOrders,
+          averageOrderValue: previousAverageOrderValue,
+          platformRevenue: previousPlatformFee
+        }
       },
       sellerSales,
       promptSales,
@@ -105,6 +147,41 @@ function getDateRange(period: string) {
     default: start.setDate(now.getDate() - 30);
   }
   return { start: start.toISOString(), end: now.toISOString() };
+}
+
+function getPreviousDateRange(period: string) {
+  const now = new Date();
+  let start = new Date();
+  let end = new Date();
+  
+  switch(period) {
+    case '7days':
+      // 前7日間: 14日前から7日前まで
+      start.setDate(now.getDate() - 14);
+      end.setDate(now.getDate() - 7);
+      break;
+    case '30days':
+      // 前30日間: 60日前から30日前まで
+      start.setDate(now.getDate() - 60);
+      end.setDate(now.getDate() - 30);
+      break;
+    case 'month':
+      // 前月: 2ヶ月前から1ヶ月前まで
+      start.setMonth(now.getMonth() - 2);
+      end.setMonth(now.getMonth() - 1);
+      break;
+    case 'year':
+      // 前年: 2年前から1年前まで
+      start.setFullYear(now.getFullYear() - 2);
+      end.setFullYear(now.getFullYear() - 1);
+      break;
+    default:
+      // デフォルトは前30日間
+      start.setDate(now.getDate() - 60);
+      end.setDate(now.getDate() - 30);
+  }
+  
+  return { start: start.toISOString(), end: end.toISOString() };
 }
 
 function calculateSellerSales(ledgerEntries: any[], sellerId?: string | null) {

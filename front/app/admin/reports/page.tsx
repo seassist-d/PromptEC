@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase-browser';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { useCounterAnimation } from '@/hooks/useCounterAnimation';
 
 interface SalesReportData {
   summary: {
@@ -17,6 +18,18 @@ interface SalesReportData {
     totalSellerPayout: number;
     platformRevenue: number;
     period: string;
+    growthRate?: {
+      revenue: number;
+      orders: number;
+      averageOrderValue: number;
+      platformRevenue: number;
+    };
+    previousPeriod?: {
+      totalRevenue: number;
+      totalOrders: number;
+      averageOrderValue: number;
+      platformRevenue: number;
+    };
   };
   sellerSales: Array<{
     display_name: string;
@@ -239,6 +252,23 @@ export default function AdminReportsPage() {
                 ))}
               </select>
 
+              {(selectedSellerId) && (
+                <button
+                  onClick={() => {
+                    setSelectedSellerId('');
+                    toast.success('フィルタをリセットしました');
+                  }}
+                  className="px-3 py-2 text-sm text-red-600 hover:text-red-800 hover:bg-red-50 transition-colors flex items-center gap-1 border border-red-300 rounded-md"
+                  disabled={loading}
+                  title="フィルタをリセット"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  リセット
+                </button>
+              )}
+
               {data && (
                 <button
                   onClick={() => exportToCSV('summary')}
@@ -258,10 +288,34 @@ export default function AdminReportsPage() {
         {data && (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              <StatCard title="総売上" value={`¥${data.summary.totalRevenue.toLocaleString()}`} icon="💰" description="期間中の総売上" />
-              <StatCard title="注文数" value={data.summary.totalOrders.toLocaleString()} icon="🛒" description="完了した注文数" />
-              <StatCard title="平均単価" value={`¥${data.summary.averageOrderValue.toLocaleString()}`} icon="📊" description="注文あたりの平均金額" />
-              <StatCard title="プラットフォーム収益" value={`¥${data.summary.platformRevenue.toLocaleString()}`} icon="💼" description="手数料収入" />
+              <StatCard 
+                title="総売上" 
+                value={`¥${data.summary.totalRevenue.toLocaleString()}`} 
+                icon="💰" 
+                description="期間中の総売上"
+                trend={data.summary.growthRate?.revenue}
+              />
+              <StatCard 
+                title="注文数" 
+                value={data.summary.totalOrders.toLocaleString()} 
+                icon="🛒" 
+                description="完了した注文数"
+                trend={data.summary.growthRate?.orders}
+              />
+              <StatCard 
+                title="平均単価" 
+                value={`¥${data.summary.averageOrderValue.toLocaleString()}`} 
+                icon="📊" 
+                description="注文あたりの平均金額"
+                trend={data.summary.growthRate?.averageOrderValue}
+              />
+              <StatCard 
+                title="プラットフォーム収益" 
+                value={`¥${data.summary.platformRevenue.toLocaleString()}`} 
+                icon="💼" 
+                description="手数料収入"
+                trend={data.summary.growthRate?.platformRevenue}
+              />
             </div>
 
             <div className="bg-white rounded-lg shadow p-6 mb-8">
@@ -471,13 +525,57 @@ export default function AdminReportsPage() {
   );
 }
 
-function StatCard({ title, value, icon, description }: { title: string; value: string | number; icon: string; description: string }) {
+function StatCard({ title, value, icon, description, trend }: { title: string; value: string | number; icon: string; description: string; trend?: number }) {
+  const isPositive = trend !== undefined && trend > 0;
+  const isNegative = trend !== undefined && trend < 0;
+  
+  // 数値をパース（¥マークやカンマを除去）
+  const numericValue = typeof value === 'string' 
+    ? parseInt(value.replace(/[¥,\s]/g, ''), 10) || 0
+    : value;
+  
+  // カウントアップアニメーション
+  const animatedValue = useCounterAnimation(numericValue, 1200);
+  
+  // フォーマット済みの値かどうかを判定
+  const isFormatted = typeof value === 'string' && (value.includes('¥') || value.includes(','));
+  
+  // 表示用の値を決定
+  const displayValue = isFormatted 
+    ? (typeof value === 'string' && value.includes('¥'))
+      ? `¥${animatedValue.toLocaleString()}`
+      : `${animatedValue.toLocaleString()}`
+    : value;
+  
   return (
     <div className="bg-white rounded-lg shadow p-6">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm text-gray-600 mb-1">{title}</p>
-          <p className="text-2xl font-bold text-gray-900">{value}</p>
+          <p className="text-2xl font-bold text-gray-900">{displayValue}</p>
+          {trend !== undefined && (
+            <div className="flex items-center mt-1">
+              {isPositive ? (
+                <span className="inline-flex items-center text-sm font-medium text-green-600">
+                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                  </svg>
+                  +{trend.toFixed(1)}%
+                </span>
+              ) : isNegative ? (
+                <span className="inline-flex items-center text-sm font-medium text-red-600">
+                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                  </svg>
+                  {trend.toFixed(1)}%
+                </span>
+              ) : (
+                <span className="inline-flex items-center text-sm font-medium text-gray-500">
+                  ±0.0%
+                </span>
+              )}
+            </div>
+          )}
           <p className="text-xs text-gray-500 mt-1">{description}</p>
         </div>
         <div className="text-4xl">{icon}</div>
@@ -488,7 +586,7 @@ function StatCard({ title, value, icon, description }: { title: string; value: s
 
 function BreakdownItem({ label, value }: { label: string; value: number }) {
   return (
-    <div className="border border-gray-200 rounded-lg名师-4">
+    <div className="border border-gray-200 rounded-lg p-4">
       <p className="text-sm text-gray-600 mb-2">{label}</p>
       <p className="text-xl font-bold text-gray-900">¥{value.toLocaleString()}</p>
     </div>
