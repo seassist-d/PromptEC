@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase-browser';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 interface SalesReportData {
   summary: {
@@ -51,10 +52,12 @@ export default function AdminReportsPage() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<SalesReportData | null>(null);
   const [period, setPeriod] = useState('30days');
+  const [selectedSellerId, setSelectedSellerId] = useState<string>('');
+  const [sellersList, setSellersList] = useState<Array<{ user_id: string; display_name: string }>>([]);
 
   useEffect(() => {
     checkAdminAndLoadData();
-  }, [period]);
+  }, [period, selectedSellerId]);
 
   const checkAdminAndLoadData = async () => {
     try {
@@ -74,6 +77,17 @@ export default function AdminReportsPage() {
         return;
       }
 
+      // 出品者リストを取得
+      const { data: sellers } = await supabase
+        .from('user_profiles')
+        .select('user_id, display_name')
+        .in('role', ['seller', 'admin'])
+        .order('display_name', { ascending: true });
+      
+      if (sellers) {
+        setSellersList(sellers);
+      }
+
       await loadReportData();
     } catch (error) {
       console.error('権限チェックエラー:', error);
@@ -86,7 +100,11 @@ export default function AdminReportsPage() {
   const loadReportData = async () => {
     try {
       setLoading(true);
-const response = await fetch(`/api/admin/reports/sales?period=${period}`);
+      const params = new URLSearchParams({ period });
+      if (selectedSellerId) {
+        params.append('seller_id', selectedSellerId);
+      }
+      const response = await fetch(`/api/admin/reports/sales?${params.toString()}`);
       
       if (!response.ok) {
         throw new Error('レポートデータの取得に失敗しました');
@@ -100,6 +118,60 @@ const response = await fetch(`/api/admin/reports/sales?period=${period}`);
     } finally {
       setLoading(false);
     }
+  };
+
+  // CSV出力
+  const exportToCSV = (type: 'sellers' | 'prompts' | 'summary') => {
+    if (!data) return;
+
+    let csv = '';
+    let filename = '';
+
+    if (type === 'summary') {
+      csv = [
+        ['項目', '金額（円）'],
+        ['総売上', data.summary.totalRevenue.toString()],
+        ['注文数', data.summary.totalOrders.toString()],
+        ['平均単価', data.summary.averageOrderValue.toString()],
+        ['プラットフォーム手数料', data.summary.totalPlatformFee.toString()],
+        ['決済手数料', data.summary.totalPaymentFee.toString()],
+        ['出品者への支払', data.summary.totalSellerPayout.toString()],
+        ['プラットフォーム収益', data.summary.platformRevenue.toString()],
+      ].map(row => row.join(',')).join('\n');
+      filename = `売上サマリー-${period}.csv`;
+    } else if (type === 'sellers') {
+      csv = [
+        ['ランク', '出品者名', '売上（円）', '注文数'],
+        ...data.sellerSales.map(seller => [
+          seller.rank.toString(),
+          seller.display_name,
+          seller.total_revenue.toString(),
+          seller.order_count.toString()
+        ])
+      ].map(row => row.join(',')).join('\n');
+      filename = `出品者売上-${period}.csv`;
+    } else {
+      csv = [
+        ['ランク', 'プロンプト名', '売上（円）', '注文数', '平均価格（円）'],
+        ...data.promptSales.map(prompt => [
+          prompt.rank.toString(),
+          `"${prompt.title.replace(/"/g, '""')}"`,
+          prompt.total_sales.toString(),
+          prompt.order_count.toString(),
+          prompt.average_price.toString()
+        ])
+      ].map(row => row.join(',')).join('\n');
+      filename = `プロンプト売上-${period}.csv`;
+    }
+
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('CSVファイルをダウンロードしました');
   };
 
   if (loading && !data) {
@@ -152,6 +224,33 @@ const response = await fetch(`/api/admin/reports/sales?period=${period}`);
                 <option value="month">過去1ヶ月</option>
                 <option value="year">過去1年</option>
               </select>
+
+              <select
+                value={selectedSellerId}
+                onChange={(e) => setSelectedSellerId(e.target.value)}
+                className="border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[200px]"
+                disabled={loading}
+              >
+                <option value="">出品者: すべて</option>
+                {sellersList.map((seller) => (
+                  <option key={seller.user_id} value={seller.user_id}>
+                    {seller.display_name || '未設定'}
+                  </option>
+                ))}
+              </select>
+
+              {data && (
+                <button
+                  onClick={() => exportToCSV('summary')}
+                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-sm flex items-center gap-2"
+                  disabled={loading}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  サマリーCSV
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -167,7 +266,7 @@ const response = await fetch(`/api/admin/reports/sales?period=${period}`);
 
             <div className="bg-white rounded-lg shadow p-6 mb-8">
               <h2 className="text-lg font-bold text-gray-900 mb-4">売上内訳</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4外层 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <BreakdownItem label="総売上" value={data.breakdown.totalSales} />
                 <BreakdownItem label="プラットフォーム手数料" value={data.breakdown.platformFee} />
                 <BreakdownItem label="決済手数料" value={data.breakdown.paymentFee} />
@@ -175,8 +274,85 @@ const response = await fetch(`/api/admin/reports/sales?period=${period}`);
               </div>
             </div>
 
+            {data.trends.length > 0 && (
+              <div className="bg-white rounded-lg shadow p-6 mb-8">
+                <h2 className="text-lg font-bold text-gray-900 mb-4">売上推移</h2>
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={data.trends}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="date" 
+                      tick={{ fontSize: 12 }}
+                      angle={period === 'year' ? 0 : -45}
+                      textAnchor={period === 'year' ? 'middle' : 'end'}
+                      height={period === 'year' ? 60 : 80}
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 12 }}
+                      tickFormatter={(value) => `¥${(value / 1000).toFixed(0)}K`}
+                    />
+                    <Tooltip 
+                      formatter={(value: number) => `¥${value.toLocaleString()}`}
+                      contentStyle={{ backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '4px' }}
+                    />
+                    <Legend />
+                    <Line 
+                      type="monotone" 
+                      dataKey="revenue" 
+                      stroke="#3B82F6" 
+                      strokeWidth={2}
+                      dot={{ r: 4 }}
+                      activeDot={{ r: 6 }}
+                      name="売上"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+
+            {data.sellerSales.length > 0 && (
+              <div className="bg-white rounded-lg shadow p-6 mb-8">
+                <h2 className="text-lg font-bold text-gray-900 mb-4">トップ10出品者</h2>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={data.sellerSales.slice(0, 10)}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="display_name" 
+                      tick={{ fontSize: 10 }}
+                      angle={-45}
+                      textAnchor="end"
+                      height={100}
+                      interval={0}
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 12 }}
+                      tickFormatter={(value) => `¥${(value / 1000).toFixed(0)}K`}
+                    />
+                    <Tooltip 
+                      formatter={(value: number) => `¥${value.toLocaleString()}`}
+                      contentStyle={{ backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '4px' }}
+                    />
+                    <Legend />
+                    <Bar dataKey="total_revenue" fill="#3B82F6" name="売上" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+
             <div className="bg-white rounded-lg shadow p-6 mb-8">
-              <h2 className="text-lg font-bold text-gray-900 mb-4">出品者別売上ランキング</h2>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
+                <h2 className="text-lg font-bold text-gray-900 mb-2 md:mb-0">出品者別売上ランキング</h2>
+                <button
+                  onClick={() => exportToCSV('sellers')}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm flex items-center gap-2"
+                  disabled={!data || data.sellerSales.length === 0}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  CSV出力
+                </button>
+              </div>
               {data.sellerSales.length > 0 ? (
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-200">
@@ -207,8 +383,50 @@ const response = await fetch(`/api/admin/reports/sales?period=${period}`);
               )}
             </div>
 
+            {data.promptSales.length > 0 && (
+              <div className="bg-white rounded-lg shadow p-6 mb-8">
+                <h2 className="text-lg font-bold text-gray-900 mb-4">トップ10プロンプト</h2>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={data.promptSales.slice(0, 10)}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="title" 
+                      tick={{ fontSize: 10 }}
+                      angle={-45}
+                      textAnchor="end"
+                      height={120}
+                      interval={0}
+                      tickFormatter={(value) => value.length > 15 ? value.substring(0, 15) + '...' : value}
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 12 }}
+                      tickFormatter={(value) => `¥${(value / 1000).toFixed(0)}K`}
+                    />
+                    <Tooltip 
+                      formatter={(value: number) => `¥${value.toLocaleString()}`}
+                      contentStyle={{ backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '4px' }}
+                    />
+                    <Legend />
+                    <Bar dataKey="total_sales" fill="#8B5CF6" name="売上" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+
             <div className="bg-white rounded-lg shadow p-6 mb-8">
-              <h2 className="text-lg font-bold text-gray-900 mb-4">プロンプト別売上ランキング（トップ20）</h2>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
+                <h2 className="text-lg font-bold text-gray-900 mb-2 md:mb-0">プロンプト別売上ランキング（トップ20）</h2>
+                <button
+                  onClick={() => exportToCSV('prompts')}
+                  className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors text-sm flex items-center gap-2"
+                  disabled={!data || data.promptSales.length === 0}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  CSV出力
+                </button>
+              </div>
               {data.promptSales.length > 0 ? (
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-200">
