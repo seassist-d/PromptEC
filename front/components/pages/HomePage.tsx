@@ -242,7 +242,6 @@ export default function HomePage() {
                     </div>
                     
                     <div className="flex items-center justify-between text-xs text-gray-500 pt-3 border-t border-gray-100">
-                      <span className="flex items-center">👀 {prompt.view_count}</span>
                       <span className="flex items-center">❤️ {prompt.like_count}</span>
                     </div>
                   </div>

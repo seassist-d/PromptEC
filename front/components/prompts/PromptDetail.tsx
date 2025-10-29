@@ -339,9 +339,6 @@ export default function PromptDetail({ slug }: PromptDetailProps) {
             )}
 
             <div className="flex items-center space-x-6">
-              <span className="text-sm text-gray-500">
-                👁️ {prompt.view_count} 回閲覧
-              </span>
               <LikeButton
                 promptId={prompt.id}
                 promptSlug={prompt.slug}

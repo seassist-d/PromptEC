@@ -120,7 +120,6 @@ export default function LikedPromptsList() {
                 </span>
               </div>
               <div className="flex justify-between items-center text-xs text-gray-500">
-                <span>👀 {prompt.view_count}</span>
                 <LikeButton
                   promptId={prompt.id}
                   initialLikeCount={prompt.like_count}

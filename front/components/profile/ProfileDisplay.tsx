@@ -381,7 +381,6 @@ export default function ProfileDisplay({ user, showEditButton = true }: ProfileD
                         </span>
                       </div>
                       <div className="flex justify-between items-center text-xs text-gray-500">
-                        <span>👀 {prompt.view_count}</span>
                         <span>❤️ {prompt.like_count}</span>
                       </div>
                     </div>

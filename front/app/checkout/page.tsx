@@ -49,7 +49,10 @@ export default function CheckoutPage() {
       const orderResult = await orderResponse.json();
 
       if (!orderResponse.ok) {
-        throw new Error(orderResult.error || '注文処理に失敗しました');
+        // 詳細なエラーメッセージを取得
+        const errorMsg = orderResult.error || '注文処理に失敗しました';
+        const errorDetails = orderResult.details ? `\n詳細: ${orderResult.details}` : '';
+        throw new Error(`${errorMsg}${errorDetails}`);
       }
 
       // Stripe決済の場合はStripeフォームを表示

@@ -23,6 +23,7 @@ export default function ReviewForm({
   const [comment, setComment] = useState<string>(existingReview?.comment || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,6 +34,7 @@ export default function ReviewForm({
     }
 
     setError(null);
+    setWarning(null);
     setIsSubmitting(true);
 
     try {
@@ -51,6 +53,13 @@ export default function ReviewForm({
       const data = await response.json();
 
       if (!response.ok) {
+        // 403エラー（購入していない）の場合は警告として表示、コンソールエラーは出力しない
+        if (response.status === 403) {
+          setWarning(data.error || 'このプロンプトを購入していません');
+          setIsSubmitting(false);
+          return;
+        }
+        // その他のエラーは通常のエラーとして扱う
         throw new Error(data.error || 'レビューの投稿に失敗しました');
       }
 
@@ -79,6 +88,11 @@ export default function ReviewForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {warning && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+          <p className="text-yellow-800 text-sm">{warning}</p>
+        </div>
+      )}
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-3">
           <p className="text-red-800 text-sm">{error}</p>

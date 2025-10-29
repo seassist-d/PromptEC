@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase-server';
 import Stripe from 'stripe';
+import { createLedgerEntries, updateSellerBalances } from '@/lib/services/ledger-service';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2024-12-18.acacia',
@@ -138,9 +139,7 @@ export async function POST(request: NextRequest) {
       console.log('決済ステータス更新成功：トリガーが発動しました');
     }
 
-    // 台帳エントリーを作成
-    console.log('台帳エントリー作成開始');
-    
+    // ステップ1: 台帳エントリーを作成（サービス関数を使用）
     // 注文アイテムと出品者情報を取得
     const { data: orderItems, error: itemsError } = await supabase
       .from('order_items')
@@ -159,122 +158,23 @@ export async function POST(request: NextRequest) {
     } else if (orderItems && orderItems.length > 0) {
       console.log('注文アイテム取得成功:', orderItems);
 
-      // 各注文アイテムに対して台帳エントリーを作成
-      for (const item of orderItems) {
-        const unitPrice = item.unit_price_jpy;
-        const sellerId = item.prompts?.seller_id;
+      // ステップ1: 台帳エントリーを作成（サービス関数を使用）
+      // Supabaseのクエリ結果をOrderItemWithSeller型に変換
+      const typedOrderItems = orderItems.map(item => ({
+        id: item.id,
+        prompt_id: item.prompt_id,
+        unit_price_jpy: item.unit_price_jpy,
+        prompts: Array.isArray(item.prompts) && item.prompts.length > 0 
+          ? { seller_id: item.prompts[0].seller_id }
+          : null
+      }));
+      await createLedgerEntries(supabase, orderId, typedOrderItems);
 
-        if (!sellerId) {
-          console.error('出品者IDが見つかりません:', item);
-          continue;
-        }
-
-        // 計算をTypeScript側で実行（型の問題を回避）
-        const paymentFee = Math.floor(unitPrice * 36 / 1000); // 3.6%
-        const platformFee = Math.floor(unitPrice / 5); // 20%
-        const sellerNet = Math.floor(unitPrice * 4 / 5 - unitPrice * 36 / 1000); // 80% - 決済手数料
-
-        console.log('台帳エントリー計算:', {
-          unitPrice,
-          paymentFee,
-          platformFee,
-          sellerNet
-        });
-
-        // 売上計上
-        const { data: saleData, error: saleError } = await supabase
-          .from('ledger_entries')
-          .insert({
-            entry_type: 'sale_gross',
-            order_id: orderId,
-            order_item_id: item.id,
-            seller_id: sellerId,
-            amount_jpy: unitPrice,
-            note: '売上計上'
-          })
-          .select('id')
-          .single();
-        
-        if (saleError) {
-          console.error('売上計上エラー:', saleError);
-        } else {
-          console.log('売上計上成功:', saleData);
-        }
-
-        // 決済手数料
-        if (paymentFee > 0) {
-          const { error: feeError } = await supabase
-            .from('ledger_entries')
-            .insert({
-              entry_type: 'payment_fee',
-              order_id: orderId,
-              seller_id: sellerId,
-              amount_jpy: -paymentFee,
-              note: '決済手数料'
-            });
-          
-          if (feeError) {
-            console.error('決済手数料エラー:', feeError);
-          }
-        }
-
-        // プラットフォーム手数料
-        if (platformFee > 0) {
-          const { error: platformError } = await supabase
-            .from('ledger_entries')
-            .insert({
-              entry_type: 'platform_fee',
-              order_id: orderId,
-              seller_id: sellerId,
-              amount_jpy: -platformFee,
-              note: 'プラットフォーム手数料'
-            });
-          
-          if (platformError) {
-            console.error('プラットフォーム手数料エラー:', platformError);
-          }
-        }
-
-        // 出品者純利益
-        if (sellerNet > 0) {
-          const { error: netError } = await supabase
-            .from('ledger_entries')
-            .insert({
-              entry_type: 'seller_net',
-              order_id: orderId,
-              seller_id: sellerId,
-              amount_jpy: sellerNet,
-              note: '出品者純利益'
-            });
-          
-          if (netError) {
-            console.error('出品者純利益エラー:', netError);
-          }
-        }
-      }
-
-      console.log('台帳エントリー作成完了');
-
-      // seller_balancesを更新
-      console.log('seller_balancesを更新...');
-      for (const item of orderItems) {
-        const sellerId = item.prompts?.seller_id;
-        
-        if (!sellerId) {
-          continue;
-        }
-
-        // RPCを呼び出してseller_balancesを更新
-        const { error: balanceError } = await supabase.rpc('update_seller_balance', {
-          seller_uuid: sellerId
-        });
-
-        if (balanceError) {
-          console.error('seller_balances更新エラー:', balanceError);
-        } else {
-          console.log('seller_balances更新成功');
-        }
-      }
+      // ステップ1: 出品者残高を更新（サービス関数を使用）
+      const sellerIds = typedOrderItems
+        .map(item => item.prompts?.seller_id)
+        .filter((id): id is string => Boolean(id));
+      await updateSellerBalances(supabase, sellerIds);
     }
 
     // カートをクリア
