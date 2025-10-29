@@ -1,13 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase-server';
+import { createClient as createServiceClient } from '@supabase/supabase-js';
 
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
     
+    // Service Role Keyを使用してRLSをバイパス
+    const supabaseAdmin = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    );
+    
     // 人気プロンプトを評価順で取得（評価が高い順、評価数が多い順）
-    // categories のリレーションを LEFT JOIN に変更して、カテゴリがなくてもプロンプトを取得できるようにする
-    const { data: prompts, error } = await supabase
+    const { data: prompts, error } = await supabaseAdmin
       .from('prompts')
       .select(`
         id,
@@ -23,6 +35,8 @@ export async function GET(request: NextRequest) {
         view_count,
         like_count,
         created_at,
+        status,
+        visibility,
         categories(id, name, slug)
       `)
       .eq('status', 'published')

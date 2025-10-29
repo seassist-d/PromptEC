@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase-server';
+import { createClient as createServiceClient } from '@supabase/supabase-js';
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,10 +15,20 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
     
-    const supabase = await createClient();
+    // Service Role Keyを使用してRLSをバイパス
+    const supabaseAdmin = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    );
     
     // プロンプトとカテゴリ情報を一緒に取得
-    let supabaseQuery = supabase
+    let supabaseQuery = supabaseAdmin
       .from('prompts')
       .select(`
         id,
@@ -90,7 +100,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 総件数を取得（別クエリ）
-    let countQuery = supabase
+    let countQuery = supabaseAdmin
       .from('prompts')
       .select('*', { count: 'exact', head: true })
       .eq('status', 'published')

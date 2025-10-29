@@ -57,10 +57,10 @@ export default function HomePage() {
     const fetchPopularPrompts = async () => {
       try {
         const response = await fetch('/api/prompts/popular');
-        if (response.ok) {
-          const data = await response.json();
-          setPrompts(data.prompts || []);
-        }
+          if (response.ok) {
+            const data = await response.json();
+            setPrompts(data.prompts || []);
+          }
       } catch (error) {
         console.error('Error fetching popular prompts:', error);
       } finally {
@@ -264,7 +264,7 @@ export default function HomePage() {
       {/* カテゴリ一覧 */}
       <section className="py-8 sm:py-12 lg:py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-2xl sm:text-3xl font-bold text-center text-grayख्या mb-8 sm:mb-12">
+           <h2 className="text-2xl sm:text-3xl font-bold text-center text-gray-900 mb-8 sm:mb-12">
             カテゴリから探す
           </h2>
           {loading ? (
