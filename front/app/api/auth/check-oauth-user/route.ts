@@ -34,45 +34,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`Checking for email: ${email}`);
-    console.log(`Total users in database: ${authUsers.users.length}`);
-    
-    // デバッグ: 最初の数件のユーザーのメールアドレスを表示
-    if (authUsers.users.length > 0) {
-      console.log('Sample user emails:', authUsers.users.slice(0, 3).map(u => ({ email: u.email, providers: u.identities?.map(i => i.provider) })));
-    }
-    
     // 同じメールアドレスのユーザーが存在するかチェック
     const sameEmailUsers = authUsers.users.filter(user => 
       user.email === email
     );
-
-    console.log(`Users with same email: ${sameEmailUsers.length}`);
-    
-    // デバッグ: 同じメールアドレスのユーザーの詳細を表示
-    if (sameEmailUsers.length > 0) {
-      sameEmailUsers.forEach(user => {
-        console.log(`Found user ${user.id}:`, {
-          email: user.email,
-          created_at: user.created_at,
-          last_sign_in_at: user.last_sign_in_at,
-          identities: user.identities,
-          app_metadata: user.app_metadata
-        });
-      });
-    }
     
     // OAuthで登録されているユーザーを探す
     for (const user of sameEmailUsers) {
-      console.log(`Checking user: ${user.id}, identities:`, user.identities);
-      
       const identities = user.identities || [];
       const oauthIdentity = identities.find(identity => 
         identity.provider !== 'email'
       );
       
       if (oauthIdentity) {
-        console.log(`OAuth user found: ${oauthIdentity.provider} for email: ${email}`);
         return NextResponse.json({
           isOAuthUser: true,
           provider: oauthIdentity.provider
@@ -80,7 +54,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log(`No OAuth user found for email: ${email}`);
     return NextResponse.json({
       isOAuthUser: false,
       provider: null

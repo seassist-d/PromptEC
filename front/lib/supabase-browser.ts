@@ -13,22 +13,18 @@ export function createClient() {
         storage: {
           getItem: (key: string) => {
             if (typeof window !== 'undefined') {
-              const value = localStorage.getItem(key);
-              console.log(`[Supabase Storage] Getting key: ${key}`, value ? 'Found' : 'Not found');
-              return value;
+              return localStorage.getItem(key);
             }
             return null;
           },
           setItem: (key: string, value: string) => {
             if (typeof window !== 'undefined') {
               localStorage.setItem(key, value);
-              console.log(`[Supabase Storage] Setting key: ${key}`, 'Success');
             }
           },
           removeItem: (key: string) => {
             if (typeof window !== 'undefined') {
               localStorage.removeItem(key);
-              console.log(`[Supabase Storage] Removing key: ${key}`, 'Success');
             }
           },
         },

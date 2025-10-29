@@ -253,24 +253,8 @@ export async function getProfileClient(): Promise<{ success: boolean; user?: Use
       .select('*')
       .eq('user_id', authUser.id)
       .single();
-    
-    console.log('Profile query result:', { 
-      profileData, 
-      profileError,
-      profileDataKeys: profileData ? Object.keys(profileData) : null,
-      profileErrorKeys: profileError ? Object.keys(profileError) : null
-    });
 
     if (profileError) {
-      // デバッグ: エラーの詳細を一度だけ確認（この後削除予定）
-      console.log('[DEBUG] profileError type:', typeof profileError);
-      console.log('[DEBUG] profileError keys:', Object.keys(profileError));
-      console.log('[DEBUG] profileError values:', Object.values(profileError));
-      console.log('[DEBUG] profileError JSON:', JSON.stringify(profileError));
-      console.log('[DEBUG] profileError.code:', profileError.code);
-      console.log('[DEBUG] profileError.message:', profileError.message);
-      console.log('[DEBUG] profileError.details:', profileError.details);
-      
       // プロフィールが存在しない場合やエラーが発生した場合は認証情報からフォールバック
       console.log('Using fallback profile from auth data');
       
@@ -288,8 +272,6 @@ export async function getProfileClient(): Promise<{ success: boolean; user?: Use
         created_at: authUser.created_at || new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
-      
-      console.log('Created fallback user:', fallbackUser);
       
       return {
         success: true,

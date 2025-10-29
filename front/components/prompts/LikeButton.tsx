@@ -28,17 +28,6 @@ export default function LikeButton({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // デバッグ用: ステートの変更を監視
-  useEffect(() => {
-    console.log('LikeButton state changed:', { 
-      isLiked, 
-      likeCount, 
-      isLoading, 
-      error,
-      renderCount: likeCount 
-    });
-  }, [isLiked, likeCount, isLoading, error]);
-
   // 認証状態に応じていいね状態を更新
   useEffect(() => {
     if (user) {
