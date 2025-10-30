@@ -1,104 +1,65 @@
 import Link from 'next/link';
 
 export default function Footer() {
-  const twitterUrl = process.env.NEXT_PUBLIC_TWITTER_URL;
-  const githubUrl = process.env.NEXT_PUBLIC_GITHUB_URL;
-  const instagramUrl = process.env.NEXT_PUBLIC_INSTAGRAM_URL;
+  // ここでは外部SNSは使用しない（要望により削除）
 
   return (
     <footer className="bg-gray-50 border-t">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          {/* 会社情報 */}
-          <div className="col-span-1 md:col-span-2">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">PromptEC</h3>
-            <p className="text-gray-600 text-sm">
-              AIプロンプトを売買できるプラットフォーム。高品質なプロンプトを購入したり、自作のプロンプトを販売したりできます。
-            </p>
-          </div>
-          
-          {/* リンク */}
-          <div>
-            <h4 className="text-sm font-semibold text-gray-900 mb-4">サポート</h4>
-            <ul className="space-y-2">
-              <li>
-                <Link href="/terms" className="text-sm text-gray-600 hover:text-gray-900">
-                  利用規約
-                </Link>
-              </li>
-              <li>
-                <Link href="/privacy" className="text-sm text-gray-600 hover:text-gray-900">
-                  プライバシーポリシー
-                </Link>
-              </li>
-              <li>
-                <Link href="/faq" className="text-sm text-gray-600 hover:text-gray-900">
-                  FAQ
-                </Link>
-              </li>
-              <li>
-                <Link href="/contact" className="text-sm text-gray-600 hover:text-gray-900">
-                  お問い合わせ
-                </Link>
-              </li>
+      <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 pt-12 pb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-y-8 sm:gap-y-0 sm:gap-x-0 w-full">
+          {/* 1列目: 会員情報 */}
+          <div className="px-0 sm:pl-0 lg:pl-43 sm:pr-6 pb-3">
+          <nav className="space-y-2">
+            <h3 className="text-sm font-semibold text-gray-900">会員情報</h3>
+            <ul className="space-y-2 text-sm text-gray-700">
+              <li><Link href="/profile" className="hover:text-blue-600">会員情報</Link></li>
+              <li><Link href="/cart" className="hover:text-blue-600">カートを確認</Link></li>
+              <li><Link href="/prompts/create" className="hover:text-blue-600">プロンプトを販売する</Link></li>
+              <li><Link href="/search" className="hover:text-blue-600">プロンプトを探す</Link></li>
             </ul>
+          </nav>
           </div>
-          
-          {/* ソーシャルリンク */}
-          <div>
-            <h4 className="text-sm font-semibold text-gray-900 mb-4">フォローする</h4>
-            <div className="flex space-x-4">
-              {twitterUrl && (
-                <a 
-                  href={twitterUrl} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-gray-400 hover:text-gray-500 transition-colors"
-                  aria-label="Twitterをフォロー"
-                >
-                  <span className="sr-only">Twitter</span>
-                  <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M8.29 20.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0022 5.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-6.993 3.743 11.65 11.65 0 01-8.457-4.287 4.106 4.106 0 001.27 5.477A4.072 4.072 0 012.8 9.713v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 012 18.407a11.616 11.616 0 006.29 1.84" />
-                  </svg>
-                </a>
-              )}
-              {githubUrl && (
-                <a 
-                  href={githubUrl} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-gray-400 hover:text-gray-500 transition-colors"
-                  aria-label="GitHubをフォロー"
-                >
-                  <span className="sr-only">GitHub</span>
-                  <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
-                    <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
-                  </svg>
-                </a>
-              )}
-              {instagramUrl && (
-                <a 
-                  href={instagramUrl} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-gray-400 hover:text-gray-500 transition-colors"
-                  aria-label="Instagramをフォロー"
-                >
-                  <span className="sr-only">Instagram</span>
-                  <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
-                    <path fillRule="evenodd" d="M12.315 2c2.43 0 2.784.013 3.808.06 1.064.049 1.791.218 2.427.465a4.902 4.902 0 011.772 1.153 4.902 4.902 0 011.153 1.772c.247.636.416 1.363.465 2.427.048 1.067.06 1.407.06 4.123v.08c0 2.643-.012 2.987-.06 4.043-.049 1.064-.218 1.791-.465 2.427a4.902 4.902 0 01-1.153 1.772 4.902 4.902 0 01-1.772 1.153c-.636.247-1.363.416-2.427.465-1.067.048-1.407.06-4.123.06h-.08c-2.643 0-2.987-.012-4.043-.06-1.064-.049-1.791-.218-2.427-.465a4.902 4.902 0 01-1.772-1.153 4.902 4.902 0 01-1.153-1.772c-.247-.636-.416-1.363-.465-2.427-.047-1.024-.06-1.379-.06-3.808v-.63c0-2.43.013-2.784.06-3.808.049-1.064.218-1.791.465-2.427A4.902 4.902 0 003.45 2.525c.636-.247 1.363-.416 2.427-.465C6.451 2.013 6.806 2 9.315 2h.63zm-.081 1.802h-.08c-2.136 0-2.389.007-3.232.046-.975.045-1.504.207-1.857.344-.467.182-.8.398-1.15.748-.35.35-.566.683-.748 1.15-.137.353-.3.882-.344 1.857-.039.843-.047 1.096-.047 3.231v.08c0 2.136.008 2.388.047 3.231.045.975.207 1.504.344 1.857.182.466.398.8.748 1.15.35.35.683.566 1.15.748.353.137.882.3 1.857.344.843.038 1.096.047 3.231.047h.08c2.136 0 2.389-.008 3.232-.047.975-.045 1.504-.207 1.857-.344.466-.182.8-.398 1.15-.748.35-.35.566-.683.748-1.15.137-.353.3-.882.344-1.857.038-.843.047-1.095.047-3.231v-.08c0-2.136-.008-2.388-.047-3.231-.045-.975-.207-1.504-.344-1.857a3.097 3.097 0 00-.748-1.15 3.098 3.098 0 00-1.15-.748c-.353-.137-.882-.3-1.857-.344-1.032-.041-1.379-.047-3.231-.047zm0 4.678a3.785 3.785 0 100 7.57 3.785 3.785 0 000-7.57zm0 9.694a5.909 5.909 0 110-11.818 5.909 5.909 0 010 11.818zm7.56-11.234a.884.884 0 110-1.768.884.884 0 010 1.768z" clipRule="evenodd" />
-                  </svg>
-                </a>
-              )}
-            </div>
+
+          {/* 2列目: カテゴリ */}
+          <div className="px-0 sm:px-6 sm:min-w-[340px] lg:min-w-[450px] pb-3">
+          <nav className="space-y-2">
+            <h3 className="text-sm font-semibold text-gray-900">カテゴリ</h3>
+            <ul className="grid grid-cols-2 gap-x-10 gap-y-2 pb-2 text-sm text-gray-700">
+              <li><Link href="/search?category=writer" className="hover:text-blue-600">ライター・編集者</Link></li>
+              <li><Link href="/search?category=sales" className="hover:text-blue-600">営業・カスタマーサポート</Link></li>
+              <li><Link href="/search?category=designer" className="hover:text-blue-600">デザイナー・クリエイター</Link></li>
+              <li><Link href="/search?category=developer" className="hover:text-blue-600">プログラマー・開発者</Link></li>
+              <li><Link href="/search?category=hr" className="hover:text-blue-600">人事・採用担当</Link></li>
+              <li><Link href="/search?category=manager" className="hover:text-blue-600">経営者・マネージャー</Link></li>
+              <li><Link href="/search?category=finance" className="hover:text-blue-600">金融・会計</Link></li>
+              <li><Link href="/search?category=marketing" className="hover:text-blue-600">マーケティング・広告</Link></li>
+              <li><Link href="/search?category=health" className="hover:text-blue-600">医療・ヘルスケア</Link></li>
+              <li><Link href="/search?category=research" className="hover:text-blue-600">研究・開発</Link></li>
+            </ul>
+          </nav>
+          </div>
+
+          {/* 3列目: サポート */}
+          <div className="px-0 sm:pl-12 lg:pl-26 pb-3">
+          <nav className="space-y-2">
+            <h3 className="text-sm font-semibold text-gray-900">サポート</h3>
+            <ul className="space-y-2 text-sm text-gray-700">
+              <li><Link href="/terms" className="hover:text-blue-600">利用規約</Link></li>
+              <li><Link href="/privacy" className="hover:text-blue-600">プライバシーポリシー</Link></li>
+              <li><Link href="/faq" className="hover:text-blue-600">FAQ</Link></li>
+              <li><Link href="/contact" className="hover:text-blue-600">お問い合わせ</Link></li>
+            </ul>
+          </nav>
           </div>
         </div>
         
-        {/* 著作権情報 */}
-        <div className="mt-8 pt-8 border-t border-gray-200">
-          <p className="text-center text-sm text-gray-500">
-            &copy; 2024 PromptEC. All rights reserved.
-          </p>
+      </div>
+      {/* 著作権情報: 全幅の暗色背景 + 縦中央揃え */}
+      <div className="border-t border-gray-700 bg-gray-900">
+        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+          <div className="h-8 flex items-center justify-center">
+            <p className="text-[11px] text-white leading-none">&copy; {new Date().getFullYear()} PromptEC</p>
+          </div>
         </div>
       </div>
     </footer>

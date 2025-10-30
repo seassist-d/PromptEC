@@ -90,31 +90,30 @@ export default function Header() {
   };
 
   return (
-    <header className="bg-gradient-to-r from-blue-600 to-purple-600 shadow-lg border-b border-blue-500/20">
+    <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md shadow-lg border-b border-gray-200/50">
       <div className="w-full px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-14 sm:h-16">
+        <div className="grid grid-cols-3 items-center h-14 sm:h-16">
           {/* ロゴ */}
           <div className="flex-shrink-0">
             <Link href="/" className="flex items-center group">
-              <span className="text-xl sm:text-2xl lg:text-3xl font-bold text-white group-hover:text-blue-200 transition-colors duration-300">
+              <span className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors duration-300">
                 PromptEC
               </span>
-              <span className="ml-1 sm:ml-2 text-white text-lg sm:text-xl lg:text-2xl animate-bounce">✨</span>
             </Link>
           </div>
           
           {/* 中央: 検索バー（デスクトップのみ表示） */}
-          <div className="hidden md:flex flex-1 max-w-lg mx-4">
-            <form action="/search" method="GET" className="relative">
+          <div className="hidden md:flex justify-center items-center mx-4">
+            <form action="/search" method="GET" className="relative w-full max-w-lg">
               <input
                 type="text"
                 name="q"
-                placeholder="プロンプトを検索..."
-                className="w-full px-4 py-3 bg-white/10 backdrop-blur-md border border-white/20 text-white placeholder-white/70 rounded-xl focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-white/40 transition-all shadow-lg"
+                placeholder="キーワードで検索する"
+                className="w-full px-4 py-2 bg-gray-50 border border-gray-300 text-gray-900 placeholder-gray-500 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm"
               />
               <button 
                 type="submit"
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white hover:text-blue-200 transition-colors animate-pulse-glow"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-blue-600 transition-colors"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -124,16 +123,9 @@ export default function Header() {
           </div>
           
           {/* 右: ナビメニュー */}
-          <div className="flex items-center space-x-4">
-            <Link href="/" className="text-white/90 hover:text-white px-3 py-2 text-sm font-medium transition-colors rounded-lg hover:bg-white/10">
-              ホーム
-            </Link>
-            <Link href="/prompts/create" className="text-white/90 hover:text-white px-3 py-2 text-sm font-medium transition-colors rounded-lg hover:bg-white/10">
-              プロンプトを登録
-            </Link>
-            
+          <div className="flex items-center justify-end space-x-4">
             {/* カートアイコン */}
-            <Link href="/cart" className="relative text-white/90 hover:text-white p-2 transition-colors rounded-lg hover:bg-white/10">
+            <Link href="/cart" className="relative text-gray-700 hover:text-blue-600 p-2 transition-colors rounded-lg hover:bg-gray-100">
               <svg className="w-5 h-5 lg:w-6 lg:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l-1 12H6l-1-12z" />
               </svg>
@@ -154,7 +146,7 @@ export default function Header() {
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="flex items-center space-x-1 sm:space-x-2 text-white/90 hover:text-white px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium rounded-lg hover:bg-white/10 transition-colors"
+                  className="flex items-center space-x-1 sm:space-x-2 text-gray-700 hover:text-blue-600 px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium rounded-lg hover:bg-gray-100 transition-colors"
                 >
                   {/* ユーザーアバター */}
                   <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
@@ -223,14 +215,22 @@ export default function Header() {
             ) : (
               // 未ログイン: ログイン・新規登録ボタン（デスクトップ）
               <>
-                <Link href="/auth/login" className="text-white/90 hover:text-white px-2 lg:px-4 py-2 rounded-lg text-xs lg:text-sm font-medium transition-colors hover:bg-white/10">
+                <Link href="/auth/login" className="text-gray-700 hover:text-blue-600 px-2 lg:px-4 py-2 rounded-lg text-xs lg:text-sm font-medium transition-colors hover:bg-gray-100">
                   ログイン
                 </Link>
-                <Link href="/auth/register" className="bg-white text-blue-600 px-4 lg:px-6 py-2 rounded-lg text-xs lg:text-sm font-bold hover:bg-blue-50 shadow-lg transition-all hover:scale-105">
+                <Link href="/auth/register" className="bg-blue-600 text-white px-4 lg:px-6 py-2 rounded-lg text-xs lg:text-sm font-bold hover:bg-blue-700 shadow-lg transition-all hover:scale-105">
                   新規登録
                 </Link>
               </>
             )}
+            
+            {/* 販売ボタン */}
+            <Link 
+              href="/prompts/create" 
+              className="bg-blue-600 text-white px-4 py-2 text-sm font-bold rounded-lg shadow-lg hover:bg-blue-700 transition-all hover:scale-105"
+            >
+              販売
+            </Link>
           </div>
         </div>
       </div>

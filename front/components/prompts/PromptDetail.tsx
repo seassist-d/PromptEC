@@ -408,7 +408,7 @@ export default function PromptDetail({ slug }: PromptDetailProps) {
             <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">説明</h2>
             <div className="prose max-w-none">
               <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
-                {prompt.long_description || prompt.short_description}
+                {prompt.short_description || prompt.long_description}
               </p>
             </div>
           </div>
