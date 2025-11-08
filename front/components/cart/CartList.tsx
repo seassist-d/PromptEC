@@ -103,7 +103,6 @@ export default function CartList() {
           >
             <CartItemComponent
               item={item}
-              onRemove={handleRemoveItem}
             />
           </motion.div>
         ))}

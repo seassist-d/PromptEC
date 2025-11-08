@@ -79,10 +79,10 @@ export default function StripeCheckoutForm({
         throw new Error(errorMessage);
       }
 
-      console.log('PaymentIntentステータス:', paymentIntent?.status);
-
+      console.log('PaymentIntent status:', paymentIntent?.status);
+      
       if (paymentIntent?.status === 'succeeded') {
-        console.log('決済成功！台帳エントリーを作成します...');
+        console.log('Stripe決済成功、決済APIを呼び出します...');
         
         // 決済が成功したら、既存の決済APIを呼び出して台帳エントリーを作成
         const paymentResponse = await fetch('/api/payments', {
@@ -104,10 +104,18 @@ export default function StripeCheckoutForm({
         }
 
         const paymentResult = await paymentResponse.json();
-        console.log('決済APIレスポンス:', paymentResult);
-
-        console.log('台帳エントリー作成完了！');
-        onSuccess(orderId);
+        console.log('決済API成功:', paymentResult);
+        
+        // 決済処理が完了したことを確認
+        if (paymentResult.success) {
+          console.log('決済処理完了、成功ページへリダイレクトします...');
+          onSuccess(orderId);
+        } else {
+          throw new Error('決済処理が完了しませんでした');
+        }
+      } else {
+        console.error('PaymentIntent status is not succeeded:', paymentIntent?.status);
+        throw new Error(`決済が完了していません。ステータス: ${paymentIntent?.status}`);
       }
     } catch (err) {
       console.error('Stripe決済エラー:', err);

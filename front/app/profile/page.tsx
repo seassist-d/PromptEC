@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import Header from '@/components/layout/SimpleHeader';
 import Footer from '@/components/layout/Footer';
 import { useAuth } from '../../lib/useAuth';
@@ -105,7 +106,23 @@ export default function ProfilePage() {
       <Header />
       <main className="flex-1 py-8">
         <div className="container mx-auto px-4">
-          <ProfileDisplay user={user} />
+          <div className="max-w-4xl mx-auto">
+            {/* ナビゲーション */}
+            <div className="mb-6">
+              <Link 
+                href="/" 
+                className="text-blue-600 hover:text-blue-800 inline-flex items-center text-sm font-medium"
+              >
+                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                トップへ戻る
+              </Link>
+            </div>
+            
+            {/* プロフィール表示 */}
+            <ProfileDisplay user={user} />
+          </div>
         </div>
       </main>
       <Footer />

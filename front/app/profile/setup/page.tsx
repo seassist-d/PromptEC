@@ -46,15 +46,11 @@ export default function ProfileSetupPage() {
         return;
       }
 
-      console.log('[setup] current user:', user.id, user.email);
-
-      const { data: existingProfile, error: fetchErr } = await supabase
+      const { data: existingProfile } = await supabase
         .from('user_profiles')
         .select('user_id')
         .eq('user_id', user.id)
         .maybeSingle();
-
-      console.log('[setup] existingProfile:', existingProfile, 'fetchErr:', fetchErr);
 
       if (!existingProfile) {
         const { error: upsertErr } = await supabase
@@ -69,11 +65,7 @@ export default function ProfileSetupPage() {
 
         if (upsertErr) {
           console.error('[setup] upsert failed:', upsertErr);
-        } else {
-          console.log('[setup] profile row created/ensured');
         }
-      } else {
-        console.log('[setup] profile row already exists for user:', user.id);
       }
     };
 
@@ -94,10 +86,6 @@ export default function ProfileSetupPage() {
     setIsLoading(true);
     setError('');
 
-    console.log('Form data:', formData);
-    console.log('User:', user);
-    console.log('Supabase client:', supabase);
-
     try {
       if (!user) {
         throw new Error('ユーザー情報が見つかりません');
@@ -105,23 +93,13 @@ export default function ProfileSetupPage() {
 
       // Supabaseの認証状態を確認
       const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
-      console.log('Auth user:', authUser);
-      console.log('Auth error:', authError);
 
       if (authError || !authUser) {
         throw new Error(`認証エラー: ${authError?.message || 'ユーザー情報が取得できません'}`);
       }
 
       // プロファイルを更新
-      console.log('Attempting to upsert profile with data:', {
-        user_id: user.id,
-        display_name: formData.display_name,
-        bio: formData.bio || null,
-        contact: {},
-        updated_at: new Date().toISOString()
-      });
-
-      const { data: upsertData, error: updateError } = await supabase
+      const { error: updateError } = await supabase
         .from('user_profiles')
         .upsert({
           user_id: user.id,
@@ -132,8 +110,6 @@ export default function ProfileSetupPage() {
           updated_at: new Date().toISOString()
         })
         .select();
-
-      console.log('Upsert result:', { upsertData, updateError });
 
       if (updateError) {
         console.error('Update error details:', {

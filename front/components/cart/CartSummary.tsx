@@ -33,8 +33,8 @@ export default function CartSummary() {
   }
 
   return (
-    <div className="bg-gray-50 p-4 sm:p-6 rounded-lg sticky top-4">
-      <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">注文概要</h2>
+    <div className="bg-gray-50 pt-2 pb-4 px-4 sm:pt-3 sm:pb-6 sm:px-6 rounded-lg">
+      <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4 text-center">注文概要</h2>
       
       {/* アイテム数と小計 */}
       <div className="space-y-2 mb-4">
@@ -47,7 +47,7 @@ export default function CartSummary() {
           <span>¥{total.toLocaleString()}</span>
         </div>
         <div className="border-t border-gray-200 pt-2">
-          <div className="flex justify-between font-semibold text-base sm:text-lg">
+          <div className="flex justify-between font-semibold text-base sm:text-lg text-gray-900">
             <span>合計:</span>
             <span className="text-blue-600">¥{total.toLocaleString()}</span>
           </div>

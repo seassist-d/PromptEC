@@ -141,19 +141,21 @@ export default function OrdersPage() {
       <div className="container mx-auto px-4 max-w-6xl">
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">購入履歴</h1>
-              <p className="text-gray-600 mt-2">過去の購入履歴を確認できます</p>
+            <div className="flex-1">
+              <Link
+                href="/profile"
+                className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                プロフィールに戻る
+              </Link>
             </div>
-            <Link
-              href="/profile"
-              className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-            >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-              プロフィールに戻る
-            </Link>
+            <div className="flex-1 text-center">
+              <h1 className="text-3xl font-bold text-gray-900">購入履歴</h1>
+            </div>
+            <div className="flex-1"></div>
           </div>
         </div>
 
@@ -185,20 +187,17 @@ export default function OrdersPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
                       <div>
-                        <p className="text-sm text-gray-600">注文番号</p>
-                        <p className="font-mono text-sm font-semibold text-gray-900">{order.order_number}</p>
-                      </div>
-                      <div>
                         <p className="text-sm text-gray-600">注文日</p>
                         <p className="text-sm text-gray-900">{formatDate(order.created_at)}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">注文番号</p>
+                        <p className="font-mono text-sm font-semibold text-gray-900">{order.order_number}</p>
                       </div>
                     </div>
                     <div className="text-right">
                       <p className="text-sm text-gray-600">合計金額</p>
                       <p className="text-2xl font-bold text-blue-600">¥{order.total_amount_jpy.toLocaleString()}</p>
-                      <span className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(order.status)}`}>
-                        {getStatusLabel(order.status)}
-                      </span>
                     </div>
                   </div>
                 </div>
@@ -225,9 +224,6 @@ export default function OrdersPage() {
                                 <p className="text-sm text-gray-500">ID: {item.prompt_id}</p>
                               </div>
                             </div>
-                            <div className="text-right ml-4">
-                              <p className="text-lg font-bold text-gray-900">¥{item.unit_price_jpy.toLocaleString()}</p>
-                            </div>
                           </div>
                         );
                       }
@@ -249,17 +245,13 @@ export default function OrdersPage() {
                               >
                                 {prompt.title || 'プロンプト'}
                               </Link>
-                              {prompt.short_description && (
-                                <p className="text-sm text-gray-600 mt-1">{prompt.short_description}</p>
-                              )}
                             </div>
                           </div>
-                          <div className="text-right ml-4">
-                            <p className="text-lg font-bold text-gray-900">¥{item.unit_price_jpy.toLocaleString()}</p>
+                          <div className="ml-4">
                             {order.status === 'paid' && (
                               <Link
                                 href={`/api/download/${order.id}/${item.id}`}
-                                className="mt-2 inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+                                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors"
                               >
                                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { updateProfileClient, deleteAvatarClient } from '../../lib/profile-client';
 import { validateProfileForm, validateField } from '../../lib/validations';
@@ -16,27 +16,68 @@ interface ProfileEditFormProps {
 
 export default function ProfileEditForm({ user, onSuccess, onCancel, onPreviewChange }: ProfileEditFormProps) {
   const { user: authUser } = useAuth();
+  
+  // デバッグ用：初期レンダリング時にuser.avatar_urlを確認
+  useEffect(() => {
+    console.log('ProfileEditForm mounted - user:', user);
+    console.log('ProfileEditForm mounted - user.avatar_url:', user.avatar_url);
+  }, [user]);
+  
   const [formData, setFormData] = useState<ProfileFormData>({
     display_name: user.display_name || '',
     bio: user.bio || '',
     contact: {
-      email: user.contact?.email || '',
-      url: user.contact?.url || '',
-      twitter: user.contact?.twitter || '',
-      github: user.contact?.github || '',
-      linkedin: user.contact?.linkedin || ''
+      email: user.contact?.email || ''
     }
   });
   
   const [originalFormData, setOriginalFormData] = useState<ProfileFormData>(formData);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const [avatarPreview, setAvatarPreview] = useState<string>(user.avatar_url || '');
+  
+  // URLが有効かどうかをチェックする関数
+  const isValidUrl = useCallback((url: string | null | undefined): boolean => {
+    if (!url || !url.trim()) return false;
+    if (url === '#' || url.startsWith('data:,') || url.trim() === '') return false;
+    // HTTPまたはHTTPSで始まるか、data:で始まる（画像データ）かチェック
+    try {
+      if (url.startsWith('data:')) return true;
+      const urlObj = new URL(url);
+      return urlObj.protocol === 'http:' || urlObj.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const [avatarPreview, setAvatarPreview] = useState<string>(() => {
+    // 有効なURLのみを設定（空文字列や不正な値を除外）
+    const url = user.avatar_url;
+    return isValidUrl(url) ? url : '';
+  });
   const [isDeleted, setIsDeleted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [hasChanges, setHasChanges] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // user.avatar_urlが更新されたときにavatarPreviewも更新
+  useEffect(() => {
+    if (!avatarFile && !isDeleted) {
+      const url = user.avatar_url;
+      console.log('ProfileEditForm - user.avatar_url:', url);
+      console.log('ProfileEditForm - isValidUrl:', isValidUrl(url));
+      console.log('ProfileEditForm - current avatarPreview:', avatarPreview);
+      // 有効なURLのみを設定
+      if (isValidUrl(url) && url !== avatarPreview) {
+        console.log('Setting avatarPreview to:', url);
+        setAvatarPreview(url);
+      } else if (!isValidUrl(url) && avatarPreview) {
+        // URLが削除されたまたは無効な場合はプレビューもクリア
+        console.log('Clearing avatarPreview - invalid URL');
+        setAvatarPreview('');
+      }
+    }
+  }, [user.avatar_url, avatarFile, isDeleted]);
 
   // 変更の監視
   useEffect(() => {
@@ -198,8 +239,8 @@ export default function ProfileEditForm({ user, onSuccess, onCancel, onPreviewCh
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-4 sm:p-6 bg-white rounded-lg shadow-md">
-      <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">プロフィール編集</h2>
+    <div className="max-w-4xl mx-auto p-4 sm:p-6 bg-white rounded-lg shadow-md">
+      <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">プロフィール編集</h2>
       
       {error && (
         <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
@@ -215,15 +256,27 @@ export default function ProfileEditForm({ user, onSuccess, onCancel, onPreviewCh
               className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center cursor-pointer overflow-hidden relative group"
               onClick={handleAvatarClick}
             >
-              {avatarPreview ? (
+              {isValidUrl(avatarPreview) ? (
                 <>
                   <img 
-                    src={avatarPreview} 
+                    src={avatarPreview.startsWith('data:') ? avatarPreview : `${avatarPreview}${avatarPreview.includes('?') ? '&' : '?'}t=${user.updated_at ? new Date(user.updated_at).getTime() : Date.now()}`}
                     alt="アバター" 
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover relative z-0"
+                    style={{ backgroundColor: '#e5e7eb' }}
+                    onError={(e) => {
+                      // 画像読み込みエラー時はプレビューをクリア
+                      console.error('Avatar image load error - clearing preview:', avatarPreview);
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      setAvatarPreview('');
+                    }}
+                    onLoad={() => {
+                      // 画像が正常に読み込まれたことを確認
+                      console.log('Avatar image loaded successfully:', avatarPreview);
+                    }}
                   />
-                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-opacity flex items-center justify-center">
-                    <span className="text-white text-xs opacity-0 group-hover:opacity-100">変更</span>
+                  <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-50 transition-opacity flex items-center justify-center pointer-events-none z-10">
+                    <span className="text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity">変更</span>
                   </div>
                 </>
               ) : (
@@ -305,7 +358,7 @@ export default function ProfileEditForm({ user, onSuccess, onCancel, onPreviewCh
             name="bio"
             value={formData.bio}
             onChange={handleInputChange}
-            rows={4}
+            rows={6}
             maxLength={500}
             className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500 ${
               fieldErrors.bio ? 'border-red-300 bg-red-50' : 'border-gray-300 bg-white'
@@ -346,85 +399,6 @@ export default function ProfileEditForm({ user, onSuccess, onCancel, onPreviewCh
             )}
           </div>
 
-          <div>
-            <label htmlFor="contact.url" className="block text-sm font-medium text-gray-900 mb-2">
-              ウェブサイト
-            </label>
-            <input
-              type="url"
-              id="contact.url"
-              name="contact.url"
-              value={formData.contact.url}
-              onChange={handleInputChange}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500 ${
-                fieldErrors['contact.url'] ? 'border-red-300 bg-red-50' : 'border-gray-300 bg-white'
-              }`}
-              placeholder="https://your-website.com"
-            />
-            {fieldErrors['contact.url'] && (
-              <p className="mt-1 text-sm text-red-600">{fieldErrors['contact.url']}</p>
-            )}
-          </div>
-
-          <div>
-            <label htmlFor="contact.twitter" className="block text-sm font-medium text-gray-900 mb-2">
-              Twitter / X
-            </label>
-            <input
-              type="text"
-              id="contact.twitter"
-              name="contact.twitter"
-              value={formData.contact.twitter}
-              onChange={handleInputChange}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500 ${
-                fieldErrors['contact.twitter'] ? 'border-red-300 bg-red-50' : 'border-gray-300 bg-white'
-              }`}
-              placeholder="@username"
-            />
-            {fieldErrors['contact.twitter'] && (
-              <p className="mt-1 text-sm text-red-600">{fieldErrors['contact.twitter']}</p>
-            )}
-          </div>
-
-          <div>
-            <label htmlFor="contact.github" className="block text-sm font-medium text-gray-900 mb-2">
-              GitHub
-            </label>
-            <input
-              type="text"
-              id="contact.github"
-              name="contact.github"
-              value={formData.contact.github}
-              onChange={handleInputChange}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500 ${
-                fieldErrors['contact.github'] ? 'border-red-300 bg-red-50' : 'border-gray-300 bg-white'
-              }`}
-              placeholder="username"
-            />
-            {fieldErrors['contact.github'] && (
-              <p className="mt-1 text-sm text-red-600">{fieldErrors['contact.github']}</p>
-            )}
-          </div>
-
-          <div>
-            <label htmlFor="contact.linkedin" className="block text-sm font-medium text-gray-900 mb-2">
-              LinkedIn
-            </label>
-            <input
-              type="text"
-              id="contact.linkedin"
-              name="contact.linkedin"
-              value={formData.contact.linkedin}
-              onChange={handleInputChange}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500 ${
-                fieldErrors['contact.linkedin'] ? 'border-red-300 bg-red-50' : 'border-gray-300 bg-white'
-              }`}
-              placeholder="username"
-            />
-            {fieldErrors['contact.linkedin'] && (
-              <p className="mt-1 text-sm text-red-600">{fieldErrors['contact.linkedin']}</p>
-            )}
-          </div>
         </div>
 
         {/* ボタン */}

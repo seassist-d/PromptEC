@@ -46,16 +46,6 @@ export async function POST(request: NextRequest) {
       // contact_inquiriesテーブルが存在しない場合は、エラーログに記録するだけ
       if (error.code === '42P01') {
         console.warn('contact_inquiries table does not exist. Saving to logs only.');
-        
-        // 開発環境ではコンソールログに記録
-        console.log('Contact Inquiry:', {
-          name,
-          email,
-          subject,
-          message,
-          privacy,
-          timestamp: new Date().toISOString(),
-        });
 
         // 実際の運用では、メール送信サービス（SendGrid、AWS SES等）を使用
         // ここでは成功を返す
@@ -76,7 +66,6 @@ export async function POST(request: NextRequest) {
 
     // TODO: 実際の運用では、ここでメール送信を行う
     // 例: SendGrid、AWS SES、Supabase Edge Function等を使用
-    console.log('Contact inquiry submitted successfully:', data);
 
     return NextResponse.json(
       { 

@@ -4,7 +4,7 @@ import Header from '@/components/layout/SimpleHeader';
 import Footer from '@/components/layout/Footer';
 import HomePage from '@/components/pages/HomePage';
 
-export default function Home() {
+export default function TopPage() {
   return (
     <div className="min-h-screen flex flex-col">
       {/* ヘッダー */}
@@ -20,3 +20,4 @@ export default function Home() {
     </div>
   );
 }
+

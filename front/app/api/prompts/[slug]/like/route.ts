@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase-server';
+import { createClient as createServiceClient } from '@supabase/supabase-js';
 
 // いいねの状態を取得
 export async function GET(
@@ -87,6 +88,18 @@ export async function POST(
   try {
     const supabase = await createClient();
     const { slug } = await params;
+    
+    // Service Role Keyを使用してRLSをバイパス（like_count更新用）
+    const supabaseAdmin = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    );
 
     // 認証状態を確認
     const { data: { user } } = await supabase.auth.getUser();
@@ -112,6 +125,58 @@ export async function POST(
       );
     }
 
+    // ユーザープロフィールの存在確認（外部キー制約エラーを防ぐため）
+    const { data: userProfile, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('user_id')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (profileError && profileError.code !== 'PGRST116') {
+      console.error('Error checking user profile:', profileError);
+      return NextResponse.json(
+        { error: 'プロフィールの確認に失敗しました' },
+        { status: 500 }
+      );
+    }
+
+    // プロフィールが存在しない場合は自動作成
+    if (!userProfile) {
+      // ユーザーのメタデータを取得するため、認証情報を再取得
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+      if (authError || !authUser) {
+        return NextResponse.json(
+          { error: '認証情報の取得に失敗しました' },
+          { status: 401 }
+        );
+      }
+
+      const { data: functionResult, error: functionError } = await supabaseAdmin
+        .rpc('update_user_profile', {
+          p_user_id: user.id,
+          p_display_name: authUser.user_metadata?.display_name || authUser.email?.split('@')[0] || 'ユーザー',
+          p_bio: null,
+          p_contact: {},
+          p_avatar_url: authUser.user_metadata?.avatar_url || null
+        });
+
+      if (functionError) {
+        console.error('Error creating user profile:', functionError);
+        return NextResponse.json(
+          { error: 'プロフィールの作成に失敗しました' },
+          { status: 500 }
+        );
+      }
+
+      if (!functionResult || !functionResult[0]?.success) {
+        console.error('Failed to create user profile:', functionResult);
+        return NextResponse.json(
+          { error: 'プロフィールの作成に失敗しました' },
+          { status: 500 }
+        );
+      }
+    }
+
     // 既にいいねしているかチェック
     const { data: existingLike, error: likeError } = await supabase
       .from('recommendation_events')
@@ -129,30 +194,18 @@ export async function POST(
       );
     }
 
-    console.log('Existing like check:', {
-      hasExistingLike: !!existingLike,
-      existingLikeId: existingLike?.id,
-      user_id: user.id,
-      prompt_id: prompt.id
-    });
-
     let isLiked = false;
     let likeCount = 0;
 
     if (existingLike) {
-      console.log('Existing like found, deleting...');
-      
-      // まず現在のいいね数を取得
-      const { data: currentPrompt, error: fetchError } = await supabase
+      // まず現在のいいね数を取得（Service Role Keyを使用）
+      const { data: currentPrompt, error: fetchError } = await supabaseAdmin
         .from('prompts')
         .select('like_count')
         .eq('id', prompt.id)
         .single();
 
       const currentLikeCount = currentPrompt?.like_count || 0;
-      console.log('Step 1 - Current like count before decrement:', currentLikeCount);
-      console.log('Step 2 - Should decrement to:', Math.max(0, currentLikeCount - 1));
-      console.log('Step 3 - About to delete like from recommendation_events');
       
       // いいねを削除
       const { error: deleteError } = await supabase
@@ -168,57 +221,47 @@ export async function POST(
         );
       }
 
-      console.log('Like deleted successfully from recommendation_events');
-
-      // プロンプトのいいね数を減らす
-      console.log('Attempting to decrement like count for prompt:', prompt.id);
+      // プロンプトのいいね数を減らす（Service Role Keyを使用）
       
-      const { error: updateError } = await supabase.rpc('decrement_like_count', {
-        prompt_id: prompt.id
-      });
-
+      const newLikeCount = Math.max(0, currentLikeCount - 1);
+      const { error: updateError } = await supabaseAdmin
+        .from('prompts')
+        .update({ like_count: newLikeCount })
+        .eq('id', prompt.id);
+      
       if (updateError) {
-        console.error('Error calling decrement_like_count:', updateError);
-        console.log('Falling back to manual update');
+        console.error('Error manually updating like_count:', updateError);
+        // RPC関数を試す
+        const { error: rpcError } = await supabaseAdmin.rpc('decrement_like_count', {
+          prompt_id: prompt.id
+        });
         
-        const newLikeCount = Math.max(0, currentLikeCount - 1);
-        console.log('Step 4 - Manually updating like count from', currentLikeCount, 'to', newLikeCount);
-        
-        // UPDATEを実行（.single()なし）
-        const { error: updateResponseError } = await supabase
-          .from('prompts')
-          .update({ like_count: newLikeCount })
-          .eq('id', prompt.id);
-        
-        console.log('Update query error:', updateResponseError);
-        
-        if (updateResponseError) {
-          console.error('Error updating like_count:', updateResponseError);
-          likeCount = Math.max(0, currentLikeCount - 1);
-          console.log('Using calculated value:', likeCount);
+        if (rpcError) {
+          console.error('Error calling decrement_like_count:', rpcError);
+          likeCount = newLikeCount;
         } else {
-          // 更新後の値を取得
-          const { data: updatedPrompt } = await supabase
+          // RPC関数が成功したので、データベースから最新の値を取得
+          await new Promise(resolve => setTimeout(resolve, 50));
+          const { data: updatedPrompt } = await supabaseAdmin
             .from('prompts')
             .select('like_count')
             .eq('id', prompt.id)
             .single();
-          
-          console.log('Updated prompt from DB:', updatedPrompt?.like_count);
-          const updatedCount = updatedPrompt?.like_count ?? Math.max(0, currentLikeCount - 1);
-          console.log('Manual update successful, using count:', updatedCount);
-          likeCount = updatedCount;
+          likeCount = updatedPrompt?.like_count || newLikeCount;
         }
       } else {
-        console.log('RPC decrement_like_count successful');
-        // 計算値を使用（RPC関数が成功したので、currentLikeCount - 1が正しい）
-        likeCount = Math.max(0, currentLikeCount - 1);
-        console.log('Calculated like count after RPC:', likeCount);
+        // 手動更新が成功したので、データベースから最新の値を取得
+        await new Promise(resolve => setTimeout(resolve, 50));
+        const { data: updatedPrompt } = await supabaseAdmin
+          .from('prompts')
+          .select('like_count')
+          .eq('id', prompt.id)
+          .single();
+        likeCount = updatedPrompt?.like_count || newLikeCount;
       }
 
       isLiked = false;
     } else {
-      console.log('No existing like, adding new like...');
       
       // いいねを追加
       const { data: newLike, error: insertError } = await supabase
@@ -239,72 +282,89 @@ export async function POST(
         );
       }
 
-      console.log('Like inserted successfully:', newLike.id);
-
-      // まず現在のいいね数を取得
-      const { data: currentPrompt, error: fetchError } = await supabase
+      // まず現在のいいね数を取得（Service Role Keyを使用）
+      const { data: currentPrompt } = await supabaseAdmin
         .from('prompts')
         .select('like_count')
         .eq('id', prompt.id)
         .single();
 
       const currentLikeCount = currentPrompt?.like_count || 0;
-      console.log('Current like count before increment:', currentLikeCount);
 
-      // プロンプトのいいね数を増やす
-      console.log('Attempting to increment like count for prompt:', prompt.id);
+      // トリガーが動作するのを待つ（200ms）
+      await new Promise(resolve => setTimeout(resolve, 200));
       
-      const { error: updateError } = await supabase.rpc('increment_like_count', {
-        prompt_id: prompt.id
-      });
+      // トリガー後の値を確認（Service Role Keyを使用）
+      const { data: triggerPrompt } = await supabaseAdmin
+        .from('prompts')
+        .select('like_count')
+        .eq('id', prompt.id)
+        .single();
+      
+      const triggerLikeCount = triggerPrompt?.like_count || 0;
 
-      if (updateError) {
-        console.error('Error calling increment_like_count:', updateError);
-        console.log('Falling back to manual update');
-        
+      // トリガーが動作していない場合（値が変わっていない場合）、手動で更新（Service Role Keyを使用）
+      if (triggerLikeCount === currentLikeCount) {
         const newLikeCount = currentLikeCount + 1;
-        console.log('Manually updating like count to:', newLikeCount);
-        
-        // UPDATEを実行（.single()なし）
-        const { error: updateResponseError } = await supabase
+        const { error: manualUpdateError } = await supabaseAdmin
           .from('prompts')
           .update({ like_count: newLikeCount })
           .eq('id', prompt.id);
         
-        console.log('Update query error:', updateResponseError);
-        
-        if (updateResponseError) {
-          console.error('Error updating like_count:', updateResponseError);
-          likeCount = currentLikeCount + 1;
+        if (manualUpdateError) {
+          console.error('Error manually updating like_count:', manualUpdateError);
+          // RPC関数を試す（Service Role Keyを使用）
+          const { error: rpcError } = await supabaseAdmin.rpc('increment_like_count', {
+            prompt_id: prompt.id
+          });
+          
+          if (rpcError) {
+            console.error('Error calling increment_like_count:', rpcError);
+            likeCount = newLikeCount;
+          } else {
+            // RPC関数が成功したので、データベースから最新の値を取得
+            await new Promise(resolve => setTimeout(resolve, 50));
+            const { data: updatedPrompt } = await supabaseAdmin
+              .from('prompts')
+              .select('like_count')
+              .eq('id', prompt.id)
+              .single();
+            likeCount = updatedPrompt?.like_count || newLikeCount;
+          }
         } else {
-          // 更新後の値を取得
-          const { data: updatedPrompt } = await supabase
+          // 手動更新が成功したので、データベースから最新の値を取得
+          await new Promise(resolve => setTimeout(resolve, 50));
+          const { data: updatedPrompt } = await supabaseAdmin
             .from('prompts')
             .select('like_count')
             .eq('id', prompt.id)
             .single();
-          
-          console.log('Updated prompt from DB:', updatedPrompt?.like_count);
-          const updatedCount = updatedPrompt?.like_count ?? (currentLikeCount + 1);
-          console.log('Manual update successful, using count:', updatedCount);
-          likeCount = updatedCount;
+          likeCount = updatedPrompt?.like_count || newLikeCount;
         }
       } else {
-        console.log('RPC increment_like_count successful');
-        // RPC関数が成功したので、計算値を使用
-        likeCount = currentLikeCount + 1;
-        console.log('Calculated like count after RPC:', likeCount);
+        // トリガーが動作したので、その値を使用
+        likeCount = triggerLikeCount;
       }
+      
+      // 最終確認: データベースから最新の値を取得（Service Role Keyを使用、複数回リトライ）
+      let finalLikeCount = likeCount;
+      for (let i = 0; i < 3; i++) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        const { data: finalPrompt } = await supabaseAdmin
+          .from('prompts')
+          .select('like_count')
+          .eq('id', prompt.id)
+          .single();
+        
+        if (finalPrompt?.like_count !== undefined) {
+          finalLikeCount = finalPrompt.like_count;
+          if (finalLikeCount > 0) break; // 正しい値が取得できたら終了
+        }
+      }
+      likeCount = finalLikeCount;
 
       isLiked = true;
     }
-
-    // 計算された値をそのまま使用（データベースに再アクセスしない）
-    console.log('Like operation completed:', {
-      isLiked,
-      likeCount: likeCount,
-      promptId: prompt.id
-    });
 
     return NextResponse.json({
       success: true,

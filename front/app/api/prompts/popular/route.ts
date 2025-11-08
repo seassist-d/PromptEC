@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
       }
     );
     
-    // 人気プロンプトを評価順で取得（評価が高い順、評価数が多い順）
+    // 人気プロンプトをいいね数順で取得（いいねが多い順）
     const { data: prompts, error } = await supabaseAdmin
       .from('prompts')
       .select(`
@@ -37,12 +37,17 @@ export async function GET(request: NextRequest) {
         created_at,
         status,
         visibility,
-        categories(id, name, slug)
+        categories(id, name, slug),
+        user_profiles!prompts_seller_id_fkey(
+          user_id,
+          display_name,
+          avatar_url
+        )
       `)
       .eq('status', 'published')
       .eq('visibility', 'public')
-      .order('created_at', { ascending: false })
-      .limit(6);
+      .order('like_count', { ascending: false })
+      .limit(10);
 
     if (error) {
       console.error('Error fetching popular prompts:', error);

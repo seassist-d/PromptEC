@@ -10,20 +10,26 @@ interface AuthPageLayoutProps {
 
 export default function AuthPageLayout({ title, subtitle, children }: AuthPageLayoutProps) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 via-gray-100 to-zinc-200 py-6 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-      {/* 装飾的な背景要素 */}
-      <div className="absolute inset-0 bg-grid-pattern opacity-[0.02]" style={{backgroundImage: 'radial-gradient(circle, #000 1px, transparent 1px)', backgroundSize: '32px 32px'}}></div>
-      <div className="absolute top-0 left-0 w-96 h-96 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-blob"></div>
-      <div className="absolute top-0 right-0 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-blob animation-delay-2000"></div>
-      <div className="absolute bottom-0 left-1/2 w-96 h-96 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-blob animation-delay-4000"></div>
-      
+    <div className="min-h-screen flex items-center justify-center bg-[linear-gradient(120deg,#f6f7f8_0%,#eef0f2_50%,#f6f7f8_100%)] py-10 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      {/* 微細グリッド（非常に薄い） */}
+      <div
+        className="absolute inset-0 opacity-[0.03] pointer-events-none"
+        style={{
+          backgroundImage: 'radial-gradient(#000 1px, transparent 1px)',
+          backgroundSize: '28px 28px'
+        }}
+      />
+      {/* 以前のカラフルなブロブは削除し、落ち着いたバイグラデ影を後景に */}
+      <div className="absolute -top-24 -left-24 h-96 w-96 rounded-full bg-zinc-300/40 blur-3xl" />
+      <div className="absolute -bottom-24 -right-24 h-[28rem] w-[28rem] rounded-full bg-neutral-400/30 blur-3xl" />
+
       <div className="max-w-md w-full space-y-6 sm:space-y-8 relative z-10">
-        {/* ヘッダー */}
+        {/* ヘッダー：重量級フォント→グラデ無しのインク色 */}
         <div className="text-center space-y-2">
-          <h2 className="text-4xl font-bold bg-gradient-to-r from-gray-900 via-gray-800 to-gray-700 bg-clip-text text-transparent">
+          <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-neutral-900">
             {title}
           </h2>
-          <p className="text-gray-600 font-medium">
+          <p className="text-[15px] sm:text-base text-zinc-600">
             {subtitle}
           </p>
         </div>
@@ -33,4 +39,3 @@ export default function AuthPageLayout({ title, subtitle, children }: AuthPageLa
     </div>
   );
 }
-

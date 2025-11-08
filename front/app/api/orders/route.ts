@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase-server';
+import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { OrderService } from '@/lib/services/order-service';
 
 // ステップ2: OrderServiceを使用して注文作成ロジックを分離
@@ -53,7 +54,7 @@ export async function POST(request: NextRequest) {
 }
 
 // 注文履歴取得
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
     
@@ -63,11 +64,102 @@ export async function GET() {
       return NextResponse.json({ error: '認証が必要です' }, { status: 401 });
     }
 
+    // クエリパラメータからorderIdを取得
+    const { searchParams } = new URL(request.url);
+    const orderId = searchParams.get('orderId');
+
     // 注文サービスを使用して注文履歴を取得
     const orderService = new OrderService(supabase);
-    const orders = await orderService.getOrders(user.id);
+    
+    if (orderId) {
+      // 特定の注文のみを取得（効率化のため直接クエリ）
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .select(`
+          *,
+          order_items (
+            id,
+            prompt_id,
+            prompt_version_id,
+            unit_price_jpy,
+            quantity,
+            created_at,
+            prompt_versions (
+              id,
+              version,
+              title_snapshot,
+              prompts (
+                id,
+                title,
+                slug,
+                thumbnail_url,
+                short_description
+              )
+            )
+          ),
+          payments (
+            id,
+            status,
+            provider_id,
+            payment_providers (
+              display_name
+            )
+          )
+        `)
+        .eq('id', orderId)
+        .eq('buyer_id', user.id)
+        .single();
 
-    return NextResponse.json({ orders });
+      if (orderError || !order) {
+        return NextResponse.json({ orders: [] });
+      }
+
+      // prompt_versionsがnullの場合、個別に取得して補完
+      if (order.order_items && order.order_items.length > 0) {
+        for (const item of order.order_items) {
+          if (!item.prompt_versions && item.prompt_version_id) {
+            // Service Role Keyを使用してRLSをバイパス
+            const supabaseAdmin = createServiceClient(
+              process.env.NEXT_PUBLIC_SUPABASE_URL!,
+              process.env.SUPABASE_SERVICE_ROLE_KEY!,
+              {
+                auth: {
+                  autoRefreshToken: false,
+                  persistSession: false
+                }
+              }
+            );
+
+            const { data: promptVersion } = await supabaseAdmin
+              .from('prompt_versions')
+              .select(`
+                id,
+                version,
+                title_snapshot,
+                prompts (
+                  id,
+                  title,
+                  slug,
+                  thumbnail_url,
+                  short_description
+                )
+              `)
+              .eq('id', item.prompt_version_id)
+              .single();
+
+            if (promptVersion) {
+              item.prompt_versions = promptVersion;
+            }
+          }
+        }
+      }
+
+      return NextResponse.json({ orders: [order] });
+    } else {
+      // 全注文を取得
+      const orders = await orderService.getOrders(user.id);
+      return NextResponse.json({ orders });
+    }
 
   } catch (error) {
     console.error('注文取得エラー:', error);

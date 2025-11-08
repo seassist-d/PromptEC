@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, description, content, category_id, price, tags, thumbnail_url } = body;
+    const { title, description, content, category_id, price, thumbnail_url } = body;
 
     // バリデーション
     if (!title || !description || !content || !category_id || price === undefined || price === null) {
@@ -175,68 +175,6 @@ export async function POST(request: NextRequest) {
       if (assetError) {
         console.error('Prompt asset creation error:', assetError);
         console.warn('警告: プロンプトアセットの作成に失敗しました。ダウンロード機能に影響する可能性があります。');
-      }
-    }
-
-    // タグを追加（tagsテーブルとprompt_tagsテーブルを使用）
-    if (tags && tags.length > 0) {
-      try {
-        // 各タグをtagsテーブルに追加（存在しない場合のみ）
-        const tagPromises = tags.map(async (tagName: string) => {
-          const trimmedTag = tagName.trim();
-          if (!trimmedTag) return null;
-
-          // タグが既に存在するかチェック
-          const { data: existingTag } = await supabase
-            .from('tags')
-            .select('id')
-            .eq('name', trimmedTag)
-            .single();
-
-          if (existingTag) {
-            return existingTag.id;
-          }
-
-          // 新しいタグを作成
-          const { data: newTag, error: tagError } = await supabase
-            .from('tags')
-            .insert({
-              name: trimmedTag,
-              slug: trimmedTag.toLowerCase().replace(/[^a-z0-9-]/g, '-')
-            })
-            .select('id')
-            .single();
-
-          if (tagError) {
-            console.error('Tag creation error:', tagError);
-            return null;
-          }
-
-          return newTag.id;
-        });
-
-        const tagIds = await Promise.all(tagPromises);
-        const validTagIds = tagIds.filter(id => id !== null);
-
-        // prompt_tagsテーブルに関連付けを追加
-        if (validTagIds.length > 0) {
-          const promptTagInserts = validTagIds.map(tagId => ({
-            prompt_id: prompt.id,
-            tag_id: tagId
-          }));
-
-          const { error: promptTagError } = await supabase
-            .from('prompt_tags')
-            .insert(promptTagInserts);
-
-          if (promptTagError) {
-            console.error('Prompt tag association error:', promptTagError);
-            // タグの関連付けに失敗してもプロンプトは作成済みなので、警告のみ
-          }
-        }
-      } catch (tagError) {
-        console.error('Tag processing error:', tagError);
-        // タグ処理に失敗してもプロンプトは作成済みなので、警告のみ
       }
     }
 

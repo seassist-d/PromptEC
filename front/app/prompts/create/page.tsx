@@ -5,44 +5,36 @@ import { useRouter } from 'next/navigation';
 import Header from '@/components/layout/SimpleHeader';
 import Footer from '@/components/layout/Footer';
 import { useAuth } from '@/lib/useAuth';
-import { uploadPromptThumbnail, createImagePreview } from '@/lib/file-upload';
+import { createImagePreview } from '@/lib/file-upload';
 import { uploadPromptThumbnailWithProgress } from '@/lib/file-upload-with-progress';
 import ProgressBar from '@/components/common/ProgressBar';
-import { useDraft } from '@/hooks/useDraft';
-import TagInput from '@/components/prompts/TagInput';
 
 export default function PromptCreatePage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   
-  // ドラフト保存機能
-  const {
-    data: draftData,
-    updateData: updateDraft,
-    clearDraft,
-    isDraftAvailable,
-    lastSaved,
-    isSaving,
-  } = useDraft('prompt-draft', {
+  const [formData, setFormData] = useState({
     title: '',
     description: '',
     content: '',
     category_id: '',
     price: '',
-    tags: '',
-  });
-
-  const [formData, setFormData] = useState({
-    title: draftData.title || '',
-    description: draftData.description || '',
-    content: draftData.content || '',
-    category_id: draftData.category_id || '',
-    price: draftData.price || '',
-    tags: draftData.tags || ''
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>('');
-  const [categories, setCategories] = useState<Array<{id: number, name: string}>>([]);
+  // 固定カテゴリリスト
+  const categories = [
+    { id: 1, name: 'ライター・編集者' },
+    { id: 2, name: '営業・カスタマーサポート' },
+    { id: 3, name: 'デザイナー・クリエイター' },
+    { id: 4, name: 'プログラマー・開発者' },
+    { id: 5, name: '人事・採用担当' },
+    { id: 6, name: '経営者・マネージャー' },
+    { id: 7, name: '金融・会計' },
+    { id: 8, name: 'マーケティング・広告' },
+    { id: 9, name: '医療・ヘルスケア' },
+    { id: 10, name: '研究・開発' },
+  ];
   const [validationErrors, setValidationErrors] = useState<{[key: string]: string}>({});
   
   // サムネイル画像関連のstate
@@ -59,21 +51,6 @@ export default function PromptCreatePage() {
       router.push('/auth/login');
       return;
     }
-
-    // カテゴリ一覧を取得
-    const fetchCategories = async () => {
-      try {
-        const response = await fetch('/api/categories');
-        if (response.ok) {
-          const data = await response.json();
-          setCategories(data.categories || []);
-        }
-      } catch (error) {
-        console.error('Error fetching categories:', error);
-      }
-    };
-
-    fetchCategories();
   }, [user, authLoading, router]);
 
   const validateForm = () => {
@@ -87,14 +64,14 @@ export default function PromptCreatePage() {
 
     if (!formData.description.trim()) {
       errors.description = '説明は必須です';
-    } else if (formData.description.length > 200) {
-      errors.description = '説明は200文字以内で入力してください';
+    } else if (formData.description.length > 500) {
+      errors.description = '説明は500文字以内で入力してください';
     }
 
     if (!formData.content.trim()) {
       errors.content = 'プロンプト内容は必須です';
-    } else if (formData.content.length > 2000) {
-      errors.content = 'プロンプト内容は2000文字以内で入力してください';
+    } else if (formData.content.length > 10000) {
+      errors.content = 'プロンプト内容は10000文字以内で入力してください';
     }
 
     if (!formData.category_id) {
@@ -112,20 +89,6 @@ export default function PromptCreatePage() {
       }
     }
 
-    // タグのバリデーション
-    if (formData.tags.trim()) {
-      const tags = formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag);
-      if (tags.length > 10) {
-        errors.tags = 'タグは10個以内で設定してください';
-      }
-      for (const tag of tags) {
-        if (tag.length > 50) {
-          errors.tags = '各タグは50文字以内で入力してください';
-          break;
-        }
-      }
-    }
-
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -139,9 +102,6 @@ export default function PromptCreatePage() {
     };
     
     setFormData(newData);
-    
-    // ドラフトを自動更新
-    updateDraft({ [name]: value });
 
     // リアルタイムバリデーション
     if (validationErrors[name]) {
@@ -224,7 +184,6 @@ export default function PromptCreatePage() {
         content: formData.content.trim(),
         category_id: parseInt(formData.category_id),
         price: parseFloat(formData.price),
-        tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag),
         seller_id: user.id,
         thumbnail_url: thumbnailUrl
       };
@@ -243,9 +202,6 @@ export default function PromptCreatePage() {
       }
 
       const result = await response.json();
-      
-      // ドラフトをクリア
-      clearDraft();
       
       router.push(`/prompts/${result.prompt.slug}`);
     } catch (error) {
@@ -285,19 +241,6 @@ export default function PromptCreatePage() {
                   </p>
                 </div>
                 
-                {/* ドラフト情報表示 */}
-                {(isDraftAvailable || isSaving) && (
-                  <div className="flex items-center space-x-2 text-sm text-blue-600">
-                    {isSaving && (
-                      <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
-                    )}
-                    <span>
-                      {isSaving ? '保存中...' : lastSaved ? `下書きを保存済み (${lastSaved.toLocaleTimeString()})` : 'ドラフトあり'}
-                    </span>
-                  </div>
-                )}
               </div>
 
               {error && (
@@ -398,14 +341,14 @@ export default function PromptCreatePage() {
                       validationErrors.description ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : ''
                     }`}
                     placeholder="プロンプトの説明を入力してください"
-                    maxLength={200}
+                    maxLength={500}
                   />
                   <div className="mt-1 flex justify-between items-center">
                     {validationErrors.description && (
                       <p className="text-sm text-red-600">{validationErrors.description}</p>
                     )}
                     <p className="text-xs text-gray-500 ml-auto">
-                      {formData.description.length} / 200
+                      {formData.description.length} / 500
                     </p>
                   </div>
                 </div>
@@ -427,16 +370,16 @@ export default function PromptCreatePage() {
                       validationErrors.content ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : ''
                     }`}
                     placeholder="プロンプトの内容を入力してください"
-                    maxLength={2000}
+                    maxLength={10000}
                   />
                   <div className="mt-1 flex justify-between items-center">
                     {validationErrors.content && (
                       <p className="text-sm text-red-600">{validationErrors.content}</p>
                     )}
                     <p className={`text-xs ml-auto ${
-                      formData.content.length > 1800 ? 'text-orange-500' : 'text-gray-500'
+                      formData.content.length > 9000 ? 'text-orange-500' : 'text-gray-500'
                     }`}>
-                      {formData.content.length} / 2000
+                      {formData.content.length} / 10000
                     </p>
                   </div>
                 </div>
@@ -512,7 +455,7 @@ export default function PromptCreatePage() {
                     className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md text-gray-900"
                   />
                   <p className="mt-1 text-sm text-gray-500">
-                    推奨サイズ: 1200x600px、最大5MB（JPEG、PNG）
+                    推奨サイズ: 600x600px、最大5MB（JPEG、PNG）
                   </p>
                   {thumbnailPreview && (
                     <div className="mt-4">
@@ -520,7 +463,7 @@ export default function PromptCreatePage() {
                       <img
                         src={thumbnailPreview}
                         alt="サムネイルプレビュー"
-                        className="w-full max-w-md h-48 object-cover border border-gray-300 rounded-md"
+                        className="w-[100px] h-[100px] object-cover border border-gray-300 rounded-md"
                       />
                     </div>
                   )}
@@ -534,29 +477,6 @@ export default function PromptCreatePage() {
                     </div>
                   )}
                 </div>
-              </div>
-
-              <div>
-                <label htmlFor="tags" className="block text-sm font-medium text-gray-700">
-                  タグ
-                </label>
-                <div className="mt-1">
-                  <TagInput
-                    value={formData.tags}
-                    onChange={(value) => {
-                      setFormData(prev => ({ ...prev, tags: value }));
-                      updateDraft({ tags: value });
-                    }}
-                    placeholder="タグを入力（例: AI, マーケティング）"
-                    className={validationErrors.tags ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : ''}
-                  />
-                  {validationErrors.tags && (
-                    <p className="mt-1 text-sm text-red-600">{validationErrors.tags}</p>
-                  )}
-                </div>
-                <p className="mt-1 text-sm text-gray-500">
-                  タグを入力すると候補が表示されます。複数のタグはカンマで区切って入力してください（最大10個）
-                </p>
               </div>
 
               <div className="flex justify-end space-x-3">
@@ -605,7 +525,7 @@ export default function PromptCreatePage() {
                           <img
                             src={thumbnailPreview}
                             alt="サムネイル"
-                            className="w-full h-auto rounded-lg"
+                            className="w-[600px] h-[600px] object-cover rounded-lg"
                           />
                         </div>
                       )}
@@ -635,22 +555,6 @@ export default function PromptCreatePage() {
                           <p className="text-2xl font-bold text-blue-600">
                             ¥{parseInt(formData.price).toLocaleString()}
                           </p>
-                        </div>
-                      )}
-                      
-                      {/* タグ */}
-                      {formData.tags && (
-                        <div className="flex flex-wrap gap-2">
-                          {formData.tags.split(',').map((tag, index) => (
-                            tag.trim() && (
-                              <span
-                                key={index}
-                                className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800 border border-gray-200"
-                              >
-                                {tag.trim()}
-                              </span>
-                            )
-                          ))}
                         </div>
                       )}
                       

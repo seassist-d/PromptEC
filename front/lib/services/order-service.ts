@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { getLatestPromptVersion } from './prompt-version-service';
 import type { Order, OrderCartItem } from '@/lib/types/order';
 
@@ -14,7 +15,7 @@ export interface CreateOrderResult {
 }
 
 export class OrderService {
-  constructor(private supabase: SupabaseClient<any>) {}
+  constructor(private supabase: SupabaseClient) {}
 
   /**
    * 注文を作成する
@@ -74,9 +75,6 @@ export class OrderService {
     if (orderError) throw orderError;
 
     // 注文アイテムを作成
-    console.log('カートアイテム:', JSON.stringify(cart.cart_items, null, 2));
-    console.log('注文ID:', order.id);
-
     const orderItems = await Promise.all(
       cart.cart_items.map(async (item: OrderCartItem) => {
         // プロンプトの最新バージョンを取得（サービス関数を使用）
@@ -89,7 +87,6 @@ export class OrderService {
           unit_price_jpy: item.unit_price_jpy,
           quantity: item.quantity
         };
-        console.log('注文アイテム挿入データ:', JSON.stringify(insertData, null, 2));
 
         const { data: orderItem, error: itemError } = await this.supabase
           .from('order_items')
@@ -102,7 +99,6 @@ export class OrderService {
           throw itemError;
         }
 
-        console.log('注文アイテム作成成功:', orderItem);
         return orderItem;
       })
     );
@@ -136,10 +132,11 @@ export class OrderService {
           unit_price_jpy,
           quantity,
           created_at,
-          prompt_versions!inner (
+          prompt_versions (
             id,
             version,
-            prompts!inner (
+            title_snapshot,
+            prompts (
               id,
               title,
               slug,
@@ -160,7 +157,57 @@ export class OrderService {
       .eq('buyer_id', buyerId)
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+      console.error('注文取得エラー:', error);
+      throw error;
+    }
+
+    // prompt_versionsがnullの場合、個別に取得して補完
+    // Service Role Keyを使用してRLSをバイパス
+    const supabaseAdmin = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    );
+
+    if (orders && orders.length > 0) {
+      for (const order of orders) {
+        if (order.order_items && order.order_items.length > 0) {
+          for (const item of order.order_items) {
+            if (!item.prompt_versions && item.prompt_version_id) {
+              // prompt_versionsがnullの場合、個別に取得（Service Role Keyを使用）
+              const { data: promptVersion, error: versionError } = await supabaseAdmin
+                .from('prompt_versions')
+                .select(`
+                  id,
+                  version,
+                  title_snapshot,
+                  prompts (
+                    id,
+                    title,
+                    slug,
+                    thumbnail_url,
+                    short_description
+                  )
+                `)
+                .eq('id', item.prompt_version_id)
+                .single();
+
+              if (versionError) {
+                console.error('prompt_versions取得エラー:', versionError);
+              } else if (promptVersion) {
+                item.prompt_versions = promptVersion;
+              }
+            }
+          }
+        }
+      }
+    }
 
     return orders || [];
   }

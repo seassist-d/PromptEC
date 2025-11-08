@@ -18,26 +18,20 @@ export default function LoginPage() {
 
   useEffect(() => {
     setMounted(true);
-    
-    // URLパラメータからメッセージを取得
+
     const urlParams = new URLSearchParams(window.location.search);
     const message = urlParams.get('message');
     const error = urlParams.get('error');
-    
-    if (message) {
-      setInfoMessage(message);
-    }
+
+    if (message) setInfoMessage(message);
     if (error) {
-      // エラーメッセージを日本語化
       const japaneseError = translateErrorMessage(error);
       setErrorMessage(japaneseError);
     }
   }, []);
 
-  // エラーメッセージを日本語に変換する関数
   const translateErrorMessage = (error: string): string => {
     const decodedError = decodeURIComponent(error);
-    
     if (decodedError.includes('Email link is invalid or has expired')) {
       return 'このリンクは1時間で無効になります。再度登録してください。';
     }
@@ -50,19 +44,15 @@ export default function LoginPage() {
     if (decodedError.includes('Too many requests')) {
       return 'リクエストが多すぎます。しばらく待ってから再度お試しください。';
     }
-    
-    // その他のエラーは元のメッセージを返す
     return decodedError;
   };
 
   const handleSuccess = (message: string) => {
     setSuccessMessage(message);
     setErrorMessage('');
-    
-    // 成功メッセージ表示後、トップページにリダイレクト
     setTimeout(() => {
       router.push('/');
-    }, 2000); // 2秒後にリダイレクト
+    }, 2000);
   };
 
   const handleError = (message: string) => {
@@ -72,12 +62,13 @@ export default function LoginPage() {
 
   if (!mounted) {
     return (
-      <AuthPageLayout title="ログイン" subtitle="PromptECアカウントにログイン">
-        <div className="bg-white/80 backdrop-blur-lg py-8 px-4 shadow-2xl border border-gray-200 sm:rounded-2xl sm:px-10 animate-pulse" style={{boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.5) inset'}}>
+      <AuthPageLayout title="ログイン" subtitle="PromptAssistアカウントにログイン">
+        {/* Skeleton: シックなトーン＆角丸強め */}
+        <div className="bg-white/70 backdrop-blur-sm py-8 px-5 shadow-[0_10px_40px_-12px_rgba(0,0,0,0.25)] border border-zinc-200/70 sm:rounded-2xl sm:px-10 animate-pulse">
           <div className="space-y-3 sm:space-y-4">
-            <div className="h-10 bg-gray-200 rounded"></div>
-            <div className="h-10 bg-gray-200 rounded"></div>
-            <div className="h-10 bg-gray-200 rounded"></div>
+            <div className="h-10 bg-zinc-200 rounded-xl"></div>
+            <div className="h-10 bg-zinc-200 rounded-xl"></div>
+            <div className="h-10 bg-zinc-200 rounded-xl"></div>
           </div>
         </div>
       </AuthPageLayout>
@@ -85,44 +76,36 @@ export default function LoginPage() {
   }
 
   return (
-    <AuthPageLayout title="ログイン" subtitle="PromptECアカウントにログイン">
-      {/* 外部連携ボタンとフォーム */}
-      <div className="bg-white/80 backdrop-blur-lg py-8 px-4 shadow-2xl border border-gray-200 sm:rounded-2xl sm:px-10" style={{boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.5) inset'}}>
-        {/* 成功メッセージ */}
-        {successMessage && mounted && (
-          <SuccessMessage message={successMessage} className="mb-6" />
-        )}
+    <AuthPageLayout title="ログイン" subtitle="PromptAssistアカウントにログイン">
+      {/* カード: 余白を広めに・陰影控えめ・ボーダー淡く */}
+      <div className="bg-white/80 backdrop-blur-sm py-8 px-5 shadow-[0_10px_40px_-12px_rgba(0,0,0,0.25)] border border-zinc-200/70 sm:rounded-2xl sm:px-10">
+        {successMessage && mounted && <SuccessMessage message={successMessage} className="mb-6" />}
+        {errorMessage && mounted && <ErrorMessage message={errorMessage} className="mb-6" />}
+        {infoMessage && mounted && <InfoMessage message={infoMessage} className="mb-6" />}
 
-        {/* エラーメッセージ */}
-        {errorMessage && mounted && (
-          <ErrorMessage message={errorMessage} className="mb-6" />
-        )}
-
-        {/* 情報メッセージ */}
-        {infoMessage && mounted && (
-          <InfoMessage message={infoMessage} className="mb-6" />
-        )}
-        
         <SocialLoginButtons onSuccess={handleSuccess} onError={handleError} />
-        
-        {/* 区切り線 */}
+
+        {/* 区切り線：文字は小さめ・彩度抑えめ */}
         <div className="relative my-6">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-300" />
+            <div className="w-full border-t border-zinc-200" />
           </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white text-gray-500">または</span>
+          <div className="relative flex justify-center text-xs sm:text-sm">
+            <span className="px-2 bg-white/80 text-zinc-500">または</span>
           </div>
         </div>
 
         <LoginForm onSuccess={handleSuccess} onError={handleError} />
       </div>
 
-      {/* 新規登録リンク */}
+      {/* 新規登録リンク：下線＋彩度低いアクセント */}
       <div className="text-center">
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-zinc-600">
           アカウントをお持ちでない方は{' '}
-          <a href="/auth/register" className="font-medium text-blue-600 hover:text-blue-500 transition-colors">
+          <a
+            href="/auth/register"
+            className="font-medium underline underline-offset-4 decoration-zinc-300 hover:decoration-zinc-700 text-zinc-800 transition-colors"
+          >
             新規登録
           </a>
         </p>

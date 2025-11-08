@@ -22,41 +22,36 @@ export default function CartPage() {
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Header />
       <main className="flex-1">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-2xl">
         {/* ヘッダー */}
         <div className="mb-6 sm:mb-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-                カート
-                {itemCount > 0 && (
-                  <span className="ml-2 text-lg font-normal text-gray-600">
-                    ({itemCount}件)
-                  </span>
-                )}
-              </h1>
-              <p className="text-gray-600 mt-2">
-                お気に入りのプロンプトを確認して、購入手続きに進んでください
-              </p>
-            </div>
-            
-            {/* 更新ボタン */}
-            <button
-              onClick={refreshCart}
-              disabled={isLoading}
-              className="flex items-center px-4 py-2 text-gray-600 hover:text-gray-800 disabled:opacity-50"
-              title="カートを更新"
+          {/* 買い物を続けるボタン */}
+          <div className="mb-4">
+            <Link
+              href="/"
+              className="inline-flex items-center px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
             >
               <svg 
-                className={`w-5 h-5 mr-2 ${isLoading ? 'animate-spin' : ''}`} 
+                className="w-5 h-5 mr-2" 
                 fill="none" 
                 stroke="currentColor" 
                 viewBox="0 0 24 24"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
-              更新
-            </button>
+              買い物を続ける
+            </Link>
+          </div>
+          
+          <div className="text-center">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+              カート
+              {itemCount > 0 && (
+                <span className="ml-2 text-lg font-normal text-gray-600">
+                  ({itemCount}件)
+                </span>
+              )}
+            </h1>
           </div>
         </div>
 
@@ -73,25 +68,22 @@ export default function CartPage() {
         )}
 
         {/* メインコンテンツ */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
+        <div className="bg-white rounded-lg shadow-sm p-6">
           {/* カートアイテム一覧 */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-lg shadow-sm">
-              <div className="p-6">
-                <CartList />
-              </div>
-            </div>
+          <div className="mb-6">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">購入する商品</h2>
+            <CartList />
           </div>
           
           {/* 注文概要 */}
-          <div className="lg:col-span-1">
+          <div>
             <CartSummary />
           </div>
         </div>
 
         {/* フッター情報 */}
         <div className="mt-8 sm:mt-12 bg-white rounded-lg shadow-sm p-4 sm:p-6">
-          <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">購入について</h2>
+          <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">購入について</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
             <div className="text-center">
               <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -127,34 +119,6 @@ export default function CartPage() {
               <p className="text-sm text-gray-600">
                 購入したプロンプトは無制限にダウンロード・ご利用いただけます
               </p>
-            </div>
-          </div>
-        </div>
-
-        {/* おすすめプロンプト */}
-        <div className="mt-12">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-gray-900">おすすめプロンプト</h2>
-            <Link 
-              href="/search"
-              className="text-blue-600 hover:text-blue-800 font-medium"
-            >
-              すべて見る →
-            </Link>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="text-center py-8">
-              <p className="text-gray-600 mb-4">おすすめプロンプトの表示機能は今後実装予定です</p>
-              <Link 
-                href="/search"
-                className="inline-flex items-center bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-              >
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                プロンプトを探す
-              </Link>
             </div>
           </div>
         </div>

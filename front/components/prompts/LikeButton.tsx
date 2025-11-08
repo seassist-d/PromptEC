@@ -68,8 +68,6 @@ export default function LikeButton({
         ? `/api/prompts/${promptSlug}/like`
         : `/api/prompts/${promptId}/like`;
       
-      console.log('Calling API:', endpoint);
-      
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -78,24 +76,28 @@ export default function LikeButton({
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        console.error('API Error:', data);
-        setError(data.error || 'いいねの処理に失敗しました');
+        // レスポンスボディが空の場合を考慮
+        let errorData;
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          try {
+            errorData = await response.json();
+          } catch (e) {
+            // JSONパースエラーの場合、空のレスポンスとみなす
+            errorData = {};
+          }
+        } else {
+          errorData = {};
+        }
+        setError(errorData.error || `いいねの処理に失敗しました (${response.status})`);
         return;
       }
 
       const data = await response.json();
       
-      console.log('API Response received:', data);
-      
       // APIレスポンスの値をそのまま使用（楽観的更新なし）
       setIsLiked(data.isLiked);
       setLikeCount(data.likeCount);
-      
-      console.log('State updated:', {
-        isLiked: data.isLiked,
-        likeCount: data.likeCount
-      });
     } catch (error) {
       console.error('Like error:', error);
       setError('いいねの処理に失敗しました');

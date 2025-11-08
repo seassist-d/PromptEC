@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/useAuth';
 import { uploadPromptThumbnail, createImagePreview, deletePromptFile } from '@/lib/file-upload';
@@ -15,12 +15,23 @@ export default function PromptEditPage({ params }: { params: Promise<{ slug: str
     content: '',
     category_id: '',
     price: '',
-    tags: ''
   });
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [error, setError] = useState<string>('');
-  const [categories, setCategories] = useState<Array<{id: number, name: string}>>([]);
+  // 固定カテゴリリスト
+  const categories = [
+    { id: 1, name: 'ライター・編集者' },
+    { id: 2, name: '営業・カスタマーサポート' },
+    { id: 3, name: 'デザイナー・クリエイター' },
+    { id: 4, name: 'プログラマー・開発者' },
+    { id: 5, name: '人事・採用担当' },
+    { id: 6, name: '経営者・マネージャー' },
+    { id: 7, name: '金融・会計' },
+    { id: 8, name: 'マーケティング・広告' },
+    { id: 9, name: '医療・ヘルスケア' },
+    { id: 10, name: '研究・開発' },
+  ];
   const [validationErrors, setValidationErrors] = useState<{[key: string]: string}>({});
   
   // サムネイル画像関連のstate
@@ -28,6 +39,27 @@ export default function PromptEditPage({ params }: { params: Promise<{ slug: str
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
   const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
+  
+  // 初期化済みフラグ（useRefで永続的に保持）
+  const isInitializedRef = useRef(false);
+  const currentSlugRef = useRef<string>('');
+
+  // パラメータ解決用のuseEffect
+  useEffect(() => {
+    const resolveParams = async () => {
+      const resolvedParams = await params;
+      const targetSlug = resolvedParams.slug;
+      
+      // slugが変更された場合は初期化状態をリセット
+      if (currentSlugRef.current !== targetSlug) {
+        isInitializedRef.current = false;
+        currentSlugRef.current = targetSlug;
+        setSlug(targetSlug);
+      }
+    };
+    
+    resolveParams();
+  }, [params]);
 
   useEffect(() => {
     const initializePage = async () => {
@@ -45,26 +77,22 @@ export default function PromptEditPage({ params }: { params: Promise<{ slug: str
         return;
       }
 
-      // パラメータを取得
-      const resolvedParams = await params;
-      setSlug(resolvedParams.slug);
+      // slugが未設定の場合は待機
+      if (!slug) {
+        return;
+      }
+      
+      // 既に同じslugで初期化済みの場合は再実行しない（編集内容を保護）
+      if (isInitializedRef.current && currentSlugRef.current === slug) {
+        setIsLoadingData(false);
+        return;
+      }
 
       // 認証が完了している場合のみデータを取得
-      if (user && user.id) {
-        // カテゴリ一覧を取得
-        try {
-          const response = await fetch('/api/categories');
-          if (response.ok) {
-            const data = await response.json();
-            setCategories(data.categories || []);
-          }
-        } catch (error) {
-          console.error('Error fetching categories:', error);
-        }
-
+      if (user && user.id && slug) {
         // プロンプトデータを取得
         try {
-          const response = await fetch(`/api/prompts/${resolvedParams.slug}`);
+          const response = await fetch(`/api/prompts/${slug}`);
           if (response.ok) {
             const promptData = await response.json();
             
@@ -75,18 +103,27 @@ export default function PromptEditPage({ params }: { params: Promise<{ slug: str
               return;
             }
 
-            setFormData({
-              title: promptData.title || '',
-              description: promptData.short_description || '',
-              content: promptData.long_description || '',
-              category_id: promptData.category_id?.toString() || '',
-              price: promptData.price_jpy?.toString() || '',
-              tags: '' // タグは別途取得が必要
-            });
-            
-            // 現在のサムネイル画像URLを保存
-            if (promptData.thumbnail_url) {
-              setCurrentThumbnailUrl(promptData.thumbnail_url);
+            // フォームデータを初期化（編集内容を保護するため、既に値がある場合は更新しない）
+            if (!isInitializedRef.current || currentSlugRef.current !== slug) {
+              // フォームデータが空の場合のみ初期値を設定
+              const hasFormData = formData.title || formData.description || formData.content;
+              if (!hasFormData) {
+                setFormData({
+                  title: promptData.title || '',
+                  description: promptData.short_description || '',
+                  content: promptData.long_description || '',
+                  category_id: promptData.category_id?.toString() || '',
+                  price: promptData.price_jpy?.toString() || '',
+                });
+              }
+              
+              // 現在のサムネイル画像URLを保存（未設定の場合のみ）
+              if (promptData.thumbnail_url && !currentThumbnailUrl) {
+                setCurrentThumbnailUrl(promptData.thumbnail_url);
+              }
+              
+              isInitializedRef.current = true;
+              currentSlugRef.current = slug;
             }
           } else {
             const errorData = await response.json();
@@ -106,7 +143,8 @@ export default function PromptEditPage({ params }: { params: Promise<{ slug: str
     };
 
     initializePage();
-  }, [user, authLoading, router, params]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, authLoading, slug]);
 
   const validateForm = () => {
     const errors: {[key: string]: string} = {};
@@ -119,14 +157,14 @@ export default function PromptEditPage({ params }: { params: Promise<{ slug: str
 
     if (!formData.description.trim()) {
       errors.description = '説明は必須です';
-    } else if (formData.description.length > 200) {
-      errors.description = '説明は200文字以内で入力してください';
+    } else if (formData.description.length > 500) {
+      errors.description = '説明は500文字以内で入力してください';
     }
 
     if (!formData.content.trim()) {
       errors.content = 'プロンプト内容は必須です';
-    } else if (formData.content.length > 2000) {
-      errors.content = 'プロンプト内容は2000文字以内で入力してください';
+    } else if (formData.content.length > 10000) {
+      errors.content = 'プロンプト内容は10000文字以内で入力してください';
     }
 
     if (!formData.category_id) {
@@ -141,20 +179,6 @@ export default function PromptEditPage({ params }: { params: Promise<{ slug: str
         errors.price = '価格は0以上の数値を入力してください';
       } else if (price > 100000) {
         errors.price = '価格は100,000円以内で設定してください';
-      }
-    }
-
-    // タグのバリデーション
-    if (formData.tags.trim()) {
-      const tags = formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag);
-      if (tags.length > 10) {
-        errors.tags = 'タグは10個以内で設定してください';
-      }
-      for (const tag of tags) {
-        if (tag.length > 50) {
-          errors.tags = '各タグは50文字以内で入力してください';
-          break;
-        }
       }
     }
 
@@ -245,7 +269,6 @@ export default function PromptEditPage({ params }: { params: Promise<{ slug: str
         content: formData.content.trim(),
         category_id: parseInt(formData.category_id),
         price: parseFloat(formData.price),
-        tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag),
         thumbnail_url: thumbnailUrl
       };
 
@@ -258,8 +281,20 @@ export default function PromptEditPage({ params }: { params: Promise<{ slug: str
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'プロンプトの更新に失敗しました');
+        // レスポンスボディが空の場合を考慮
+        let errorData;
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          try {
+            errorData = await response.json();
+          } catch (e) {
+            // JSONパースエラーの場合、空のレスポンスとみなす
+            errorData = {};
+          }
+        } else {
+          errorData = {};
+        }
+        throw new Error(errorData.message || `プロンプトの更新に失敗しました (${response.status})`);
       }
 
       const result = await response.json();
@@ -400,6 +435,7 @@ export default function PromptEditPage({ params }: { params: Promise<{ slug: str
                       validationErrors.description ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : ''
                     }`}
                     placeholder="プロンプトの説明を入力してください"
+                    maxLength={500}
                   />
                   {validationErrors.description && (
                     <p className="mt-1 text-sm text-red-600">{validationErrors.description}</p>
@@ -423,6 +459,7 @@ export default function PromptEditPage({ params }: { params: Promise<{ slug: str
                       validationErrors.content ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : ''
                     }`}
                     placeholder="プロンプトの内容を入力してください"
+                    maxLength={10000}
                   />
                   {validationErrors.content && (
                     <p className="mt-1 text-sm text-red-600">{validationErrors.content}</p>
@@ -499,7 +536,7 @@ export default function PromptEditPage({ params }: { params: Promise<{ slug: str
                         <img
                           src={currentThumbnailUrl}
                           alt="現在のサムネイル"
-                          className="w-full max-w-md h-48 object-cover border border-gray-300 rounded-md"
+                          className="w-[100px] h-[100px] object-cover border border-gray-300 rounded-md"
                         />
                         <button
                           type="button"
@@ -519,7 +556,7 @@ export default function PromptEditPage({ params }: { params: Promise<{ slug: str
                       <img
                         src={thumbnailPreview}
                         alt="サムネイルプレビュー"
-                        className="w-full max-w-md h-48 object-cover border border-gray-300 rounded-md"
+                        className="w-[100px] h-[100px] object-cover border border-gray-300 rounded-md"
                       />
                       <button
                         type="button"
@@ -547,38 +584,13 @@ export default function PromptEditPage({ params }: { params: Promise<{ slug: str
                   )}
                   
                   <p className="mt-1 text-sm text-gray-500">
-                    推奨サイズ: 1200x600px、最大5MB（JPEG、PNG）
+                    推奨サイズ: 600x600px、最大5MB（JPEG、PNG）
                   </p>
                   
                   {uploadingThumbnail && (
                     <p className="mt-2 text-sm text-blue-600">画像をアップロード中...</p>
                   )}
                 </div>
-              </div>
-
-              <div>
-                <label htmlFor="tags" className="block text-sm font-medium text-gray-700">
-                  タグ
-                </label>
-                <div className="mt-1">
-                  <input
-                    type="text"
-                    name="tags"
-                    id="tags"
-                    value={formData.tags}
-                    onChange={handleInputChange}
-                    className={`shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md text-gray-900 ${
-                      validationErrors.tags ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : ''
-                    }`}
-                    placeholder="タグ1, タグ2, タグ3（カンマ区切り）"
-                  />
-                  {validationErrors.tags && (
-                    <p className="mt-1 text-sm text-red-600">{validationErrors.tags}</p>
-                  )}
-                </div>
-                <p className="mt-1 text-sm text-gray-500">
-                  複数のタグはカンマで区切って入力してください（最大10個）
-                </p>
               </div>
 
               <div className="flex justify-between">

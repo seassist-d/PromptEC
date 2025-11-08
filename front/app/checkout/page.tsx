@@ -107,12 +107,26 @@ export default function CheckoutPage() {
 
   // Stripe決済成功時のコールバック
   const handleStripeSuccess = (orderId: string) => {
-    router.push(`/checkout/success?orderId=${orderId}`);
+    console.log('handleStripeSuccess called with orderId:', orderId);
+    setIsProcessing(false);
+    setShowStripeForm(false);
+    setOrderId(null);
+    try {
+      console.log('リダイレクトを実行します。URL:', `/checkout/success?orderId=${orderId}`);
+      // window.location.hrefを使用して確実にリダイレクト
+      window.location.href = `/checkout/success?orderId=${orderId}`;
+    } catch (error) {
+      console.error('リダイレクトエラー:', error);
+      // フォールバック: router.pushを試す
+      router.push(`/checkout/success?orderId=${orderId}`);
+    }
   };
 
   // Stripe決済エラー時のコールバック
   const handleStripeError = (errorMessage: string) => {
+    console.error('handleStripeError called with error:', errorMessage);
     setError(errorMessage);
+    setIsProcessing(false);
     setShowStripeForm(false);
     setOrderId(null);
   };
@@ -135,8 +149,8 @@ export default function CheckoutPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
-      <div className="container mx-auto px-4 max-w-4xl">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">購入手続き</h1>
+      <div className="container mx-auto px-4 max-w-2xl">
+        <h1 className="text-3xl font-bold text-gray-900 mb-8 text-center">購入手続き</h1>
 
         {error && (
           <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
@@ -144,137 +158,114 @@ export default function CheckoutPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="space-y-6">
           {/* 注文内容 */}
-          <div>
-            <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-              <h2 className="text-xl font-semibold mb-4 text-gray-900">注文内容</h2>
-              <div className="space-y-3">
-                {items.map((item: any) => (
-                  <div key={item.id} className="flex justify-between py-2 border-b border-gray-200">
-                    <span className="text-gray-900">{item.prompts?.title || 'プロンプト'}</span>
-                    <span className="font-semibold text-gray-900">¥{item.unit_price_jpy.toLocaleString()}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <div className="flex justify-between text-xl font-bold text-gray-900">
-                  <span>合計</span>
-                  <span className="text-blue-600">¥{total.toLocaleString()}</span>
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h2 className="text-xl font-semibold mb-4 text-gray-900">注文内容</h2>
+            <div className="space-y-3">
+              {items.map((item: any) => (
+                <div key={item.id} className="flex justify-between py-2 border-b border-gray-200">
+                  <span className="text-gray-900">{item.prompts?.title || 'プロンプト'}</span>
+                  <span className="font-semibold text-gray-900">¥{item.unit_price_jpy.toLocaleString()}</span>
                 </div>
-              </div>
+              ))}
             </div>
-
-              {/* 支払い方法 */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h2 className="text-xl font-semibold mb-4 text-gray-900">支払い方法</h2>
-              <div className="space-y-3">
-                <label className="flex items-center p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
-                  <input
-                    type="radio"
-                    name="payment"
-                    value="card"
-                    checked={selectedPayment === 'card'}
-                    onChange={(e) => setSelectedPayment(e.target.value)}
-                    className="mr-3"
-                  />
-                  <div>
-                    <div className="font-semibold text-gray-900">クレジットカード</div>
-                    <div className="text-sm text-gray-700">VISA, Mastercard, JCB, American Express</div>
-                  </div>
-                </label>
-
-                <label className="flex items-center p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 opacity-50">
-                  <input
-                    type="radio"
-                    name="payment"
-                    value="paypal"
-                    checked={selectedPayment === 'paypal'}
-                    onChange={(e) => setSelectedPayment(e.target.value)}
-                    className="mr-3"
-                    disabled
-                  />
-                  <div>
-                    <div className="font-semibold text-gray-900">PayPal</div>
-                    <div className="text-sm text-gray-700">今後実装予定</div>
-                  </div>
-                </label>
-
-                <label className="flex items-center p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 opacity-50">
-                  <input
-                    type="radio"
-                    name="payment"
-                    value="paypay"
-                    checked={selectedPayment === 'paypay'}
-                    onChange={(e) => setSelectedPayment(e.target.value)}
-                    className="mr-3"
-                    disabled
-                  />
-                  <div>
-                    <div className="font-semibold text-gray-900">PayPay</div>
-                    <div className="text-sm text-gray-700">今後実装予定</div>
-                  </div>
-                </label>
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <div className="flex justify-between text-xl font-bold text-gray-900">
+                <span>合計</span>
+                <span className="text-blue-600">¥{total.toLocaleString()}</span>
               </div>
-
-              {/* Stripe Checkout Form */}
-              {showStripeForm && orderId && (
-                <Elements stripe={stripePromise}>
-                  <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                    <h3 className="text-lg font-semibold mb-4 text-gray-900">カード情報</h3>
-                    <StripeCheckoutForm
-                      orderId={orderId}
-                      amount={total}
-                      onSuccess={handleStripeSuccess}
-                      onError={handleStripeError}
-                    />
-                  </div>
-                </Elements>
-              )}
             </div>
           </div>
 
-          {/* 注文概要 */}
-          <div>
-            <div className="bg-white rounded-lg shadow-sm p-6 sticky top-4">
-              <h2 className="text-xl font-semibold mb-4 text-gray-900">注文概要</h2>
-              <div className="space-y-2 mb-6">
-                <div className="flex justify-between text-gray-800">
-                  <span>アイテム数</span>
-                  <span>{itemCount}件</span>
+          {/* 支払い方法 */}
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h2 className="text-xl font-semibold mb-4 text-gray-900">支払い方法</h2>
+            <div className="space-y-3">
+              <label className="flex items-center p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
+                <input
+                  type="radio"
+                  name="payment"
+                  value="card"
+                  checked={selectedPayment === 'card'}
+                  onChange={(e) => setSelectedPayment(e.target.value)}
+                  className="mr-3"
+                />
+                <div>
+                  <div className="font-semibold text-gray-900">クレジットカード</div>
+                  <div className="text-sm text-gray-700">VISA, Mastercard, JCB, American Express</div>
                 </div>
-                <div className="flex justify-between text-gray-800">
-                  <span>小計</span>
-                  <span>¥{total.toLocaleString()}</span>
-                </div>
-                <div className="border-t border-gray-200 pt-2 flex justify-between font-bold text-lg text-gray-900">
-                  <span>合計</span>
-                  <span className="text-blue-600">¥{total.toLocaleString()}</span>
-                </div>
-              </div>
+              </label>
 
-              {!showStripeForm && (
-                <button
-                  onClick={handleCheckout}
-                  disabled={isProcessing || !selectedPayment}
-                  className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isProcessing ? '処理中...' : '購入を確定'}
-                </button>
-              )}
+              <label className="flex items-center p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 opacity-50">
+                <input
+                  type="radio"
+                  name="payment"
+                  value="paypal"
+                  checked={selectedPayment === 'paypal'}
+                  onChange={(e) => setSelectedPayment(e.target.value)}
+                  className="mr-3"
+                  disabled
+                />
+                <div>
+                  <div className="font-semibold text-gray-900">PayPal</div>
+                  <div className="text-sm text-gray-700">今後実装予定</div>
+                </div>
+              </label>
 
-              <Link
-                href="/cart"
-                className="block w-full text-center mt-3 text-gray-800 hover:text-gray-900"
+              <label className="flex items-center p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 opacity-50">
+                <input
+                  type="radio"
+                  name="payment"
+                  value="paypay"
+                  checked={selectedPayment === 'paypay'}
+                  onChange={(e) => setSelectedPayment(e.target.value)}
+                  className="mr-3"
+                  disabled
+                />
+                <div>
+                  <div className="font-semibold text-gray-900">PayPay</div>
+                  <div className="text-sm text-gray-700">今後実装予定</div>
+                </div>
+              </label>
+            </div>
+
+            {/* Stripe Checkout Form */}
+            {showStripeForm && orderId && (
+              <Elements stripe={stripePromise}>
+                <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                  <h3 className="text-lg font-semibold mb-4 text-gray-900">カード情報</h3>
+                  <StripeCheckoutForm
+                    orderId={orderId}
+                    amount={total}
+                    onSuccess={handleStripeSuccess}
+                    onError={handleStripeError}
+                  />
+                </div>
+              </Elements>
+            )}
+
+            {!showStripeForm && (
+              <button
+                onClick={handleCheckout}
+                disabled={isProcessing || !selectedPayment}
+                className="w-full mt-6 bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                カートに戻る
-              </Link>
+                {isProcessing ? '処理中...' : '購入を確定'}
+              </button>
+            )}
 
-              <div className="mt-6 text-xs text-gray-700 space-y-1">
-                <p>• 価格は税込みです</p>
-                <p>• デジタル商品のため返品できません</p>
-                <p>• 購入後は無制限にダウンロード可能です</p>
-              </div>
+            <Link
+              href="/cart"
+              className="block w-full text-center mt-3 text-gray-800 hover:text-gray-900"
+            >
+              カートに戻る
+            </Link>
+
+            <div className="mt-6 text-xs text-gray-700 space-y-1">
+              <p>• 価格は税込みです</p>
+              <p>• デジタル商品のため返品できません</p>
+              <p>• 購入後は無制限にダウンロード可能です</p>
             </div>
           </div>
         </div>

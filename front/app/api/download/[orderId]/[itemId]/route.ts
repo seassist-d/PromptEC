@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase-server';
+import { createClient as createServiceClient } from '@supabase/supabase-js';
 
 export async function GET(
   request: NextRequest,
@@ -65,8 +66,20 @@ export async function GET(
       );
     }
 
-    // プロンプトバージョンとアセットを取得
-    const { data: promptVersion, error: versionError } = await supabase
+    // Service Role Keyを使用してRLSをバイパス
+    const supabaseAdmin = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    );
+
+    // プロンプトバージョンとアセットを取得（Service Role Keyを使用）
+    const { data: promptVersion, error: versionError } = await supabaseAdmin
       .from('prompt_versions')
       .select(`
         id,
@@ -85,8 +98,9 @@ export async function GET(
       .single();
 
     if (versionError || !promptVersion) {
+      console.error('プロンプトバージョン取得エラー:', versionError);
       return NextResponse.json(
-        { error: 'プロンプトの内容が見つかりません' },
+        { error: 'プロンプトの内容が見つかりません', details: versionError?.message },
         { status: 404 }
       );
     }

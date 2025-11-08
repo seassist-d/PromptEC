@@ -11,201 +11,174 @@ export default function Header() {
   const { user, loading, signOut } = useAuth();
   const { itemCount } = useCart();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [profileUser, setProfileUser] = useState<User | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // プロフィール情報を取得（ページ読み込み時と定期的に更新）
   useEffect(() => {
     const fetchProfile = async () => {
       if (user && !profileLoading) {
         setProfileLoading(true);
         try {
           const result = await getProfileClient();
-          if (result.success && result.user) {
-            setProfileUser(result.user);
-          }
-        } catch (error) {
-          console.error('Failed to fetch profile:', error);
+          if (result.success && result.user) setProfileUser(result.user);
+        } catch (e) {
+          console.error('Failed to fetch profile:', e);
         } finally {
           setProfileLoading(false);
         }
       }
     };
-
     fetchProfile();
-    
-    // 定期的にプロフィールを再取得（30秒ごと）
     const interval = setInterval(fetchProfile, 30000);
-    
     return () => clearInterval(interval);
   }, [user]);
-  
-  // フォーカスが戻ったときにプロフィールを再取得
+
   useEffect(() => {
     const handleFocus = async () => {
       if (user) {
         try {
           const result = await getProfileClient();
-          if (result.success && result.user) {
-            setProfileUser(result.user);
-          }
-        } catch (error) {
-          console.error('Failed to fetch profile on focus:', error);
+          if (result.success && result.user) setProfileUser(result.user);
+        } catch (e) {
+          console.error('Failed to fetch profile on focus:', e);
         }
       }
     };
-    
     window.addEventListener('focus', handleFocus);
     return () => window.removeEventListener('focus', handleFocus);
   }, [user]);
 
-  // ドロップダウン外クリックで閉じる
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsDropdownOpen(false);
-      }
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) setIsDropdownOpen(false);
     };
-
     document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // 表示名を決定する関数
   const getDisplayName = () => {
-    if (profileUser?.display_name) {
-      return profileUser.display_name;
-    }
-    if (user?.user_metadata?.display_name) {
-      return user.user_metadata.display_name;
-    }
-    if (user?.email) {
-      return user.email.split('@')[0];
-    }
+    if (profileUser?.display_name) return profileUser.display_name;
+    if (user?.user_metadata?.display_name) return user.user_metadata.display_name;
+    if (user?.email) return user.email.split('@')[0];
     return 'ユーザー';
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md shadow-lg border-b border-gray-200/50">
+    <header className="sticky top-0 z-50 border-b border-zinc-100 bg-white/90 backdrop-blur-md supports-[backdrop-filter]:bg-white/75">
       <div className="w-full px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-3 items-center h-14 sm:h-16">
-          {/* ロゴ */}
-          <div className="flex-shrink-0">
+        <div className="grid grid-cols-[auto_1fr_auto] items-center h-16">
+          
+          {/* ========== ロゴ ========== */}
+          <div className="flex items-center gap-2">
             <Link href="/" className="flex items-center group">
-              <span className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors duration-300">
-                PromptEC
+              <span className="text-2xl sm:text-3xl font-bold tracking-tight bg-gradient-to-r from-blue-800 to-blue-500 bg-clip-text text-transparent group-hover:from-blue-700 group-hover:to-blue-400 transition-all">
+                Prompt Assist
               </span>
             </Link>
           </div>
-          
-          {/* 中央: 検索バー（デスクトップのみ表示） */}
-          <div className="hidden md:flex justify-center items-center mx-4">
-            <form action="/search" method="GET" className="relative w-full max-w-lg">
+
+          {/* ========== 検索欄 ========== */}
+          <div className="hidden md:flex justify-center mx-6">
+            <form action="/search" method="GET" className="relative w-full max-w-[640px]">
               <input
                 type="text"
                 name="q"
-                placeholder="キーワードで検索する"
-                className="w-full px-4 py-2 bg-gray-50 border border-gray-300 text-gray-900 placeholder-gray-500 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm"
+                placeholder="プロンプトやカテゴリを検索"
+                className="
+                  w-full h-11 ps-4 pe-12
+                  rounded-full border border-indigo-100
+                  bg-gradient-to-r from-indigo-50/70 to-sky-50/70
+                  text-neutral-800 placeholder-zinc-500
+                  focus:outline-none focus:ring-4 focus:ring-indigo-100 focus:border-indigo-400
+                  transition-all
+                  shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]
+                "
               />
-              <button 
+              <button
                 type="submit"
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-blue-600 transition-colors"
+                aria-label="検索"
+                className="
+                  absolute right-1.5 top-1/2 -translate-y-1/2
+                  inline-flex items-center justify-center
+                  h-8 w-8 rounded-full
+                  text-indigo-500 hover:text-indigo-700 hover:bg-white
+                  transition-all border border-transparent hover:border-indigo-200
+                "
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M21 21l-4.8-4.8M16.2 10.5a5.7 5.7 0 11-11.4 0 5.7 5.7 0 0111.4 0z" />
                 </svg>
               </button>
             </form>
           </div>
-          
-          {/* 右: ナビメニュー */}
-          <div className="flex items-center justify-end space-x-4">
-            {/* カートアイコン */}
-            <Link href="/cart" className="relative text-gray-700 hover:text-blue-600 p-2 transition-colors rounded-lg hover:bg-gray-100">
-              <svg className="w-5 h-5 lg:w-6 lg:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+
+          {/* ========== 右ナビ ========== */}
+          <div className="flex items-center justify-end gap-2">
+            
+            {/* カート */}
+            <Link
+              href="/cart"
+              className="relative p-2 rounded-xl text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 transition-colors"
+              aria-label="カート"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l-1 12H6l-1-12z" />
               </svg>
               {itemCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold shadow-lg animate-bounce">
+                <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-indigo-600 text-white text-[10px] font-bold shadow flex items-center justify-center">
                   {itemCount > 99 ? '99+' : itemCount}
                 </span>
               )}
             </Link>
-            
+
+            {/* ユーザー */}
             {loading || profileLoading ? (
-              // ローディング中
-              <div className="animate-pulse">
-                <div className="h-4 w-20 bg-gray-200 rounded"></div>
-              </div>
+              <div className="animate-pulse"><div className="h-4 w-20 bg-indigo-100 rounded" /></div>
             ) : user ? (
-              // ログイン済み: ユーザードロップダウンメニュー
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="flex items-center space-x-1 sm:space-x-2 text-gray-700 hover:text-blue-600 px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium rounded-lg hover:bg-gray-100 transition-colors"
+                  className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-sm font-medium text-neutral-700 hover:text-indigo-700 hover:bg-indigo-50 transition-colors"
+                  aria-haspopup="menu"
+                  aria-expanded={isDropdownOpen}
                 >
-                  {/* ユーザーアバター */}
-                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                  <div className="w-8 h-8 rounded-full bg-indigo-100 overflow-hidden ring-1 ring-indigo-200">
                     {(profileUser?.avatar_url || user.user_metadata?.avatar_url) ? (
-                      <img 
-                        src={profileUser?.avatar_url || user.user_metadata?.avatar_url} 
-                        alt="アバター" 
-                        className="w-full h-full object-cover"
-                      />
+                      <img src={profileUser?.avatar_url || user.user_metadata?.avatar_url} alt="アバター" className="w-full h-full object-cover" />
                     ) : (
-                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      <svg className="w-5 h-5 m-1.5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                       </svg>
                     )}
                   </div>
-                  <span className="hidden sm:inline">{getDisplayName()}</span>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <span className="hidden sm:inline max-w-[12rem] truncate">{getDisplayName()}</span>
+                  <svg className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                 </button>
 
-                {/* ドロップダウンメニュー */}
                 {isDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-50">
+                  <div className="absolute right-0 mt-2 w-56 rounded-2xl bg-white shadow-xl ring-1 ring-indigo-50 z-50 overflow-hidden" role="menu">
                     <div className="py-1">
-                      <Link
-                        href="/profile"
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                        onClick={() => setIsDropdownOpen(false)}
-                      >
+                      <Link href="/profile" className="block px-4 py-2.5 text-sm text-neutral-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors" onClick={() => setIsDropdownOpen(false)} role="menuitem">
                         プロフィール
                       </Link>
-                      <Link
-                        href="/profile/edit"
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                        onClick={() => setIsDropdownOpen(false)}
-                      >
+                      <Link href="/profile/edit" className="block px-4 py-2.5 text-sm text-neutral-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors" onClick={() => setIsDropdownOpen(false)} role="menuitem">
                         プロフィール編集
                       </Link>
                       {profileUser?.role === 'admin' && (
                         <>
-                          <div className="border-t border-gray-100"></div>
-                          <Link
-                            href="/admin"
-                            className="block px-4 py-2 text-sm text-red-700 hover:bg-red-50 font-semibold"
-                            onClick={() => setIsDropdownOpen(false)}
-                          >
+                          <div className="my-1 h-px bg-indigo-50" />
+                          <Link href="/admin" className="block px-4 py-2.5 text-sm font-semibold text-rose-600 hover:bg-rose-50 transition-colors" onClick={() => setIsDropdownOpen(false)} role="menuitem">
                             🛡️ 管理者ダッシュボード
                           </Link>
                         </>
                       )}
-                      <div className="border-t border-gray-100"></div>
-                      <button
-                        onClick={() => {
-                          setIsDropdownOpen(false);
-                          signOut();
-                        }}
-                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      >
+                      <div className="my-1 h-px bg-indigo-50" />
+                      <button onClick={() => { setIsDropdownOpen(false); signOut(); }} className="block w-full text-left px-4 py-2.5 text-sm text-neutral-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors" role="menuitem">
                         ログアウト
                       </button>
                     </div>
@@ -213,22 +186,18 @@ export default function Header() {
                 )}
               </div>
             ) : (
-              // 未ログイン: ログイン・新規登録ボタン（デスクトップ）
               <>
-                <Link href="/auth/login" className="text-gray-700 hover:text-blue-600 px-2 lg:px-4 py-2 rounded-lg text-xs lg:text-sm font-medium transition-colors hover:bg-gray-100">
+                <Link href="/auth/login" className="px-3.5 py-2 rounded-xl text-sm font-medium text-neutral-700 hover:text-indigo-700 hover:bg-indigo-50 transition-colors">
                   ログイン
                 </Link>
-                <Link href="/auth/register" className="bg-blue-600 text-white px-4 lg:px-6 py-2 rounded-lg text-xs lg:text-sm font-bold hover:bg-blue-700 shadow-lg transition-all hover:scale-105">
+                <Link href="/auth/register" className="px-4 py-2 rounded-xl text-sm font-semibold text-indigo-50 bg-gradient-to-r from-indigo-500 to-sky-500 hover:from-indigo-400 hover:to-sky-400 shadow-sm transition-colors">
                   新規登録
                 </Link>
               </>
             )}
-            
+
             {/* 販売ボタン */}
-            <Link 
-              href="/prompts/create" 
-              className="bg-blue-600 text-white px-4 py-2 text-sm font-bold rounded-lg shadow-lg hover:bg-blue-700 transition-all hover:scale-105"
-            >
+            <Link href="/prompts/create" className="ms-1 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-[#2563EB] hover:bg-[#1E4ED8] shadow-sm transition-colors">
               販売
             </Link>
           </div>

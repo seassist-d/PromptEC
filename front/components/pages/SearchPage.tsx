@@ -4,14 +4,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import SearchFilters from '@/components/search/SearchFilters';
 import SearchResults from '@/components/search/SearchResults';
-import SearchBar from '@/components/search/SearchBar';
 
 export interface SearchFilters {
   query: string;
   category: string | null;
   minPrice: number | null;
   maxPrice: number | null;
-  sortBy: 'created_at' | 'price' | 'rating' | 'views';
+  sortBy: 'created_at' | 'price' | 'rating' | 'views' | 'like_count';
   sortOrder: 'ASC' | 'DESC';
 }
 
@@ -29,6 +28,7 @@ export interface Prompt {
   avg_rating: number | null;
   ratings_count: number;
   view_count: number;
+  like_count: number;
   created_at: string;
   rank: number;
 }
@@ -40,7 +40,7 @@ export default function SearchPage() {
     category: searchParams.get('category') || null,
     minPrice: searchParams.get('minPrice') ? parseInt(searchParams.get('minPrice')!) : null,
     maxPrice: searchParams.get('maxPrice') ? parseInt(searchParams.get('maxPrice')!) : null,
-    sortBy: (searchParams.get('sortBy') as SearchFilters['sortBy']) || 'created_at',
+    sortBy: (searchParams.get('sortBy') as SearchFilters['sortBy']) || 'like_count',
     sortOrder: (searchParams.get('sortOrder') as SearchFilters['sortOrder']) || 'DESC',
   });
 
@@ -49,6 +49,18 @@ export default function SearchPage() {
   const [error, setError] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
+
+  // URLパラメータが変更されたときにフィルター状態を更新
+  useEffect(() => {
+    setFilters({
+      query: searchParams.get('q') || '',
+      category: searchParams.get('category') || null,
+      minPrice: searchParams.get('minPrice') ? parseInt(searchParams.get('minPrice')!) : null,
+      maxPrice: searchParams.get('maxPrice') ? parseInt(searchParams.get('maxPrice')!) : null,
+      sortBy: (searchParams.get('sortBy') as SearchFilters['sortBy']) || 'like_count',
+      sortOrder: (searchParams.get('sortOrder') as SearchFilters['sortOrder']) || 'DESC',
+    });
+  }, [searchParams]);
 
   // 検索実行
   const performSearch = async (page: number = 1) => {
@@ -108,17 +120,6 @@ export default function SearchPage() {
         <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-2">
           プロンプト検索
         </h1>
-        <p className="text-base sm:text-lg text-gray-600">
-          お探しのプロンプトを見つけましょう
-        </p>
-      </div>
-
-      {/* 検索バー */}
-      <div className="mb-6 sm:mb-8">
-        <SearchBar
-          query={filters.query}
-          onQueryChange={(query) => handleFilterChange({ query })}
-        />
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6 sm:gap-8">

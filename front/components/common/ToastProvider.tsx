@@ -7,7 +7,7 @@ export default function ToastProvider({ children }: { children: React.ReactNode 
     <>
       {children}
       <Toaster
-        position="top-right"
+        position="top-center"
         reverseOrder={false}
         gutter={8}
         containerClassName=""

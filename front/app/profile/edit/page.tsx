@@ -3,19 +3,16 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import toast from 'react-hot-toast';
 import Header from '@/components/layout/SimpleHeader';
 import Footer from '@/components/layout/Footer';
 import { useAuth } from '../../../lib/useAuth';
 import { getProfileClient } from '../../../lib/profile-client';
 import ProfileEditForm from '../../../components/profile/ProfileEditForm';
-import ProfileDisplay from '../../../components/profile/ProfileDisplay';
 import type { User } from '../../../types/auth';
 
 export default function ProfileEditPage() {
   const { user: authUser, loading: authLoading } = useAuth();
   const [user, setUser] = useState<User | null>(null);
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const router = useRouter();
@@ -72,8 +69,6 @@ export default function ProfileEditPage() {
       // エラーが発生した場合は受け取った情報を使用
       setUser(updatedUser);
     }
-    // avatarPreviewをクリア（実際の画像を表示するため）
-    setAvatarPreview(null);
     // トーストはProfileEditForm内で既に表示されるため、ここでは表示しない
   };
 
@@ -164,24 +159,13 @@ export default function ProfileEditPage() {
                 トップへ戻る
               </Link>
             </div>
-
-            {/* プレビュー表示 */}
-            <div className="mb-8">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">プレビュー</h2>
-              <ProfileDisplay 
-                user={{ ...user, avatar_url: avatarPreview || user.avatar_url }} 
-                showEditButton={false} 
-              />
-            </div>
             
             {/* 編集フォーム */}
             <div>
-              <h2 className="text-lg font-medium text-gray-900 mb-4">編集</h2>
               <ProfileEditForm
                 user={user}
                 onSuccess={handleSuccess}
                 onCancel={handleCancel}
-                onPreviewChange={(previewUrl) => setAvatarPreview(previewUrl)}
               />
             </div>
           </div>

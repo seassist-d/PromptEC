@@ -1,6 +1,5 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { SearchFilters as SearchFiltersType } from '@/components/pages/SearchPage';
 
 interface SearchFiltersProps {
@@ -15,30 +14,20 @@ interface Category {
 }
 
 export default function SearchFilters({ filters, onFiltersChange }: SearchFiltersProps) {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  // カテゴリデータを取得
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const response = await fetch('/api/categories');
-        const data = await response.json();
-        
-        if (response.ok) {
-          setCategories(data.categories || []);
-        } else {
-          console.error('Categories fetch error:', data.error);
-        }
-      } catch (error) {
-        console.error('Categories fetch error:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCategories();
-  }, []);
+  // 固定カテゴリリスト
+  const categories: Category[] = [
+    { id: 1, name: 'ライター・編集者', slug: 'writer-editor' },
+    { id: 2, name: '営業・カスタマーサポート', slug: 'sales-support' },
+    { id: 3, name: 'デザイナー・クリエイター', slug: 'designer-creator' },
+    { id: 4, name: 'プログラマー・開発者', slug: 'programmer-developer' },
+    { id: 5, name: '人事・採用担当', slug: 'hr-recruitment' },
+    { id: 6, name: '経営者・マネージャー', slug: 'executive-manager' },
+    { id: 7, name: '金融・会計', slug: 'finance-accounting' },
+    { id: 8, name: 'マーケティング・広告', slug: 'marketing-advertising' },
+    { id: 9, name: '医療・ヘルスケア', slug: 'medical-healthcare' },
+    { id: 10, name: '研究・開発', slug: 'research-development' },
+  ];
+  const loading = false;
 
   const priceRanges = [
     { label: 'すべて', min: null, max: null },
@@ -50,6 +39,7 @@ export default function SearchFilters({ filters, onFiltersChange }: SearchFilter
   ];
 
   const sortOptions = [
+    { value: 'like_count', label: 'いいね順' },
     { value: 'created_at', label: '新着順' },
     { value: 'price', label: '価格順' },
     { value: 'rating', label: '評価順' },
@@ -142,32 +132,6 @@ export default function SearchFilters({ filters, onFiltersChange }: SearchFilter
             </label>
           ))}
         </div>
-        
-        {/* 昇順/降順 */}
-        <div className="mt-4 ml-6 space-y-3">
-          <label className="flex items-center cursor-pointer">
-            <input
-              type="radio"
-              name="sortOrder"
-              value="DESC"
-              checked={filters.sortOrder === 'DESC'}
-              onChange={() => onFiltersChange({ sortOrder: 'DESC' })}
-              className="mr-3 text-blue-600 focus:ring-blue-500 w-4 h-4"
-            />
-            <span className="text-sm font-medium text-gray-700">降順</span>
-          </label>
-          <label className="flex items-center cursor-pointer">
-            <input
-              type="radio"
-              name="sortOrder"
-              value="ASC"
-              checked={filters.sortOrder === 'ASC'}
-              onChange={() => onFiltersChange({ sortOrder: 'ASC' })}
-              className="mr-3 text-blue-600 focus:ring-blue-500 w-4 h-4"
-            />
-            <span className="text-sm font-medium text-gray-700">昇順</span>
-          </label>
-        </div>
       </div>
 
       {/* フィルターリセット */}
@@ -177,7 +141,7 @@ export default function SearchFilters({ filters, onFiltersChange }: SearchFilter
           category: null,
           minPrice: null,
           maxPrice: null,
-          sortBy: 'created_at',
+          sortBy: 'like_count',
           sortOrder: 'DESC',
         })}
         className="w-full text-sm font-medium text-blue-600 hover:text-blue-800 py-3 border-t border-gray-200 transition-colors"

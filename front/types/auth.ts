@@ -8,10 +8,6 @@ export interface User {
   bio?: string;
   contact?: {
     email?: string;
-    url?: string;
-    twitter?: string;
-    github?: string;
-    linkedin?: string;
   };
   role: 'user' | 'seller' | 'admin';
   is_banned?: boolean;
@@ -81,10 +77,6 @@ export interface ProfileFormData {
   bio: string;
   contact: {
     email?: string;
-    url?: string;
-    twitter?: string;
-    github?: string;
-    linkedin?: string;
   };
   avatar?: File | null;
 }

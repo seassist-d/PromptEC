@@ -130,6 +130,20 @@ export default function SearchResults({
 
   // フィルター条件を取得
   const getActiveFilters = () => {
+    // カテゴリーIDからUIカテゴリー名へのマッピング（SearchFilters.tsxの固定リストと一致）
+    const categoryIdToUiNameMap: Record<string, string> = {
+      '1': 'ライター・編集者',
+      '2': '営業・カスタマーサポート',
+      '3': 'デザイナー・クリエイター',
+      '4': 'プログラマー・開発者',
+      '5': '人事・採用担当',
+      '6': '経営者・マネージャー',
+      '7': '金融・会計',
+      '8': 'マーケティング・広告',
+      '9': '医療・ヘルスケア',
+      '10': '研究・開発',
+    };
+    
     const activeFilters: Array<{ key: string; label: string; value: string }> = [];
     
     if (filters.query) {
@@ -137,8 +151,9 @@ export default function SearchResults({
     }
     
     if (filters.category) {
-      // カテゴリ名はここでは簡易的にIDを表示（実際の実装ではカテゴリ名を取得）
-      activeFilters.push({ key: 'category', label: 'カテゴリ', value: filters.category });
+      // カテゴリーIDをカテゴリー名に変換
+      const categoryName = categoryIdToUiNameMap[filters.category] || filters.category;
+      activeFilters.push({ key: 'category', label: 'カテゴリ', value: categoryName });
     }
     
     if (filters.minPrice !== null || filters.maxPrice !== null) {
@@ -153,11 +168,12 @@ export default function SearchResults({
       activeFilters.push({ key: 'price', label: '価格', value: priceRange });
     }
     
-    if (filters.sortBy !== 'created_at') {
+    if (filters.sortBy !== 'like_count') {
       const sortLabels: Record<string, string> = {
         price: '価格順',
         rating: '評価順',
         views: '人気順',
+        created_at: '新着順',
       };
       activeFilters.push({ key: 'sort', label: 'ソート', value: sortLabels[filters.sortBy] || filters.sortBy });
     }
@@ -201,7 +217,6 @@ export default function SearchResults({
                 <span className="font-semibold">{filter.value}</span>
               </span>
             ))}
-            <span className="text-xs text-gray-500">({activeFilters.length}件の条件)</span>
           </div>
         )}
       </div>
@@ -265,7 +280,7 @@ export default function SearchResults({
 
               {/* 評価と価格 */}
               <div className="flex justify-between items-center pt-3 border-t border-gray-100">
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-3">
                   {prompt.avg_rating ? (
                     <>
                       <div className="flex items-center">
@@ -278,6 +293,12 @@ export default function SearchResults({
                   ) : (
                     <span className="text-sm text-gray-400">評価なし</span>
                   )}
+                  <span className="flex items-center gap-1 text-sm text-gray-600">
+                    <svg className="w-4 h-4 text-rose-500" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                    </svg>
+                    {prompt.like_count || 0}
+                  </span>
                 </div>
                 
                 <div className="text-right">

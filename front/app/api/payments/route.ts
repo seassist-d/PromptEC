@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase-server';
+import { createClient as createServiceClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
 import { createLedgerEntries, updateSellerBalances } from '@/lib/services/ledger-service';
 
@@ -58,14 +59,11 @@ export async function POST(request: NextRequest) {
     }
 
     // 支払い方法からprovider_idを取得
-    console.log('支払い方法コード:', paymentMethod);
     const { data: provider, error: providerError } = await supabase
       .from('payment_providers')
       .select('id, code')
       .eq('code', paymentMethod)
       .single();
-
-    console.log('プロバイダー取得結果:', { provider, providerError });
 
     if (providerError || !provider) {
       console.error('プロバイダー取得エラー:', providerError);
@@ -74,14 +72,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    // 決済レコードを作成
-    console.log('決済レコード作成データ:', {
-      order_id: orderId,
-      provider_id: provider.id,
-      amount_jpy: order.total_amount_jpy,
-      status: 'captured'
-    });
 
     // Stripe決済の場合はPaymentIntentを確認
     // 注意: INSERT時はstatus='pending'として作成し、後でUPDATEしてトリガーを発動させる
@@ -113,8 +103,6 @@ export async function POST(request: NextRequest) {
       .select('id, status')
       .single();
 
-    console.log('決済作成結果:', { payment, paymentError });
-
     if (paymentError) {
       console.error('決済作成エラー:', paymentError);
       return NextResponse.json(
@@ -125,7 +113,6 @@ export async function POST(request: NextRequest) {
 
     // トリガーを発動させるためにUPDATEを実行
     // これにより、auto_grant_entitlementsトリガーが発動し、注文statusが'paid'に更新される
-    console.log('決済ステータスを更新してトリガーを発動...');
     const { error: updateError } = await supabase
       .from('payments')
       .update({
@@ -135,17 +122,15 @@ export async function POST(request: NextRequest) {
 
     if (updateError) {
       console.error('決済ステータス更新エラー:', updateError);
-    } else {
-      console.log('決済ステータス更新成功：トリガーが発動しました');
     }
 
-    // ステップ1: 台帳エントリーを作成（サービス関数を使用）
-    // 注文アイテムと出品者情報を取得
+    // 注文アイテムと出品者情報を取得（エンタイトルメント作成のため）
     const { data: orderItems, error: itemsError } = await supabase
       .from('order_items')
       .select(`
         id,
         prompt_id,
+        prompt_version_id,
         unit_price_jpy,
         prompts (
           seller_id
@@ -155,26 +140,84 @@ export async function POST(request: NextRequest) {
 
     if (itemsError) {
       console.error('注文アイテム取得エラー:', itemsError);
-    } else if (orderItems && orderItems.length > 0) {
-      console.log('注文アイテム取得成功:', orderItems);
+      return NextResponse.json(
+        { error: '注文アイテムの取得に失敗しました' },
+        { status: 500 }
+      );
+    }
 
-      // ステップ1: 台帳エントリーを作成（サービス関数を使用）
-      // Supabaseのクエリ結果をOrderItemWithSeller型に変換
-      const typedOrderItems = orderItems.map(item => ({
-        id: item.id,
-        prompt_id: item.prompt_id,
-        unit_price_jpy: item.unit_price_jpy,
-        prompts: Array.isArray(item.prompts) && item.prompts.length > 0 
-          ? { seller_id: item.prompts[0].seller_id }
-          : null
-      }));
-      await createLedgerEntries(supabase, orderId, typedOrderItems);
+    if (!orderItems || orderItems.length === 0) {
+      console.error('注文アイテムが見つかりません');
+      return NextResponse.json(
+        { error: '注文アイテムが見つかりません' },
+        { status: 404 }
+      );
+    }
 
-      // ステップ1: 出品者残高を更新（サービス関数を使用）
-      const sellerIds = typedOrderItems
-        .map(item => item.prompts?.seller_id)
-        .filter((id): id is string => Boolean(id));
-      await updateSellerBalances(supabase, sellerIds);
+    // Service Role Keyを使用してRLSをバイパス
+    const supabaseAdmin = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    );
+
+    // ステップ1: エンタイトルメントを明示的に作成（トリガーに依存しない）
+    const entitlementInserts = orderItems.map(item => ({
+      buyer_id: order.buyer_id,
+      order_item_id: item.id,
+      prompt_version_id: item.prompt_version_id
+    }));
+
+    // Service Role Keyを使用してRLSをバイパス
+    const { data: entitlements, error: entitlementError } = await supabaseAdmin
+      .from('entitlements')
+      .insert(entitlementInserts)
+      .select('id');
+
+    if (entitlementError) {
+      // 既にエンタイトルメントが存在する場合は無視（重複エラー）
+      if (entitlementError.code !== '23505') {
+        console.error('エンタイトルメント作成エラー:', entitlementError);
+        // エンタイトルメント作成に失敗しても続行（トリガーで作成される可能性がある）
+      }
+    }
+
+    // ステップ2: 台帳エントリーを作成（サービス関数を使用）
+    // Supabaseのクエリ結果をOrderItemWithSeller型に変換
+    const typedOrderItems = orderItems.map(item => ({
+      id: item.id,
+      prompt_id: item.prompt_id,
+      unit_price_jpy: item.unit_price_jpy,
+      prompts: Array.isArray(item.prompts) && item.prompts.length > 0 
+        ? { seller_id: item.prompts[0].seller_id }
+        : null
+    }));
+    await createLedgerEntries(supabase, orderId, typedOrderItems);
+
+    // ステップ3: 出品者残高を更新（サービス関数を使用）
+    const sellerIds = typedOrderItems
+      .map(item => item.prompts?.seller_id)
+      .filter((id): id is string => Boolean(id));
+    await updateSellerBalances(supabase, sellerIds);
+
+    // ステップ4: 注文ステータスを'paid'に更新（トリガーで更新されていない場合に備えて）
+    // Service Role Keyを使用してRLSをバイパスして更新
+    const { data: updateResult, error: orderUpdateError } = await supabaseAdmin
+      .from('orders')
+      .update({
+        status: 'paid',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', orderId)
+      .select('id, status');
+
+    if (orderUpdateError) {
+      console.error('注文ステータス更新エラー:', orderUpdateError);
     }
 
     // カートをクリア
@@ -189,11 +232,11 @@ export async function POST(request: NextRequest) {
         .from('cart_items')
         .delete()
         .eq('cart_id', userCart.id);
-      console.log('カートをクリアしました');
     }
 
-    // 注文を確認（トリガーによってpaidになっているはず）
-    const { data: updatedOrder, error: checkError } = await supabase
+    // 注文を確認（更新が完了していることを確認）
+    let finalOrderStatus = 'pending';
+    const { data: updatedOrder, error: checkError } = await supabaseAdmin
       .from('orders')
       .select('status')
       .eq('id', orderId)
@@ -201,12 +244,32 @@ export async function POST(request: NextRequest) {
 
     if (checkError) {
       console.error('注文ステータス確認エラー:', checkError);
+    } else {
+      finalOrderStatus = updatedOrder?.status || 'pending';
+    }
+
+    // 注文ステータスがpaidでない場合、再度更新を試みる（条件を緩和）
+    if (finalOrderStatus !== 'paid') {
+      const { data: retryUpdateResult, error: retryUpdateError } = await supabaseAdmin
+        .from('orders')
+        .update({
+          status: 'paid',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', orderId)
+        .select('id, status');
+
+      if (retryUpdateError) {
+        console.error('注文ステータス再更新エラー:', retryUpdateError);
+      } else if (retryUpdateResult && retryUpdateResult.length > 0) {
+        finalOrderStatus = 'paid';
+      }
     }
 
     return NextResponse.json({
       success: true,
       paymentId: payment.id,
-      orderStatus: updatedOrder?.status,
+      orderStatus: finalOrderStatus,
       message: '決済が完了しました'
     });
 

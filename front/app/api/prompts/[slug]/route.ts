@@ -163,6 +163,27 @@ export async function GET(
         if (viewErr) console.error('Error updating view count:', viewErr);
       });
 
+    // カテゴリーIDからUIカテゴリー名へのマッピング（SearchFilters.tsxの固定リストと一致）
+    const categoryIdToUiNameMap: Record<number, string> = {
+      1: 'ライター・編集者',
+      2: '営業・カスタマーサポート',
+      3: 'デザイナー・クリエイター',
+      4: 'プログラマー・開発者',
+      5: '人事・採用担当',
+      6: '経営者・マネージャー',
+      7: '金融・会計',
+      8: 'マーケティング・広告',
+      9: '医療・ヘルスケア',
+      10: '研究・開発',
+    };
+
+    const getUiCategoryName = (categoryId: number | null, dbCategoryName: string | null | undefined): string => {
+      if (categoryId && categoryIdToUiNameMap[categoryId]) {
+        return categoryIdToUiNameMap[categoryId];
+      }
+      return dbCategoryName || '未分類';
+    };
+
     const responseData = {
       id: prompt.id,
       title: prompt.title,
@@ -179,7 +200,7 @@ export async function GET(
       created_at: prompt.created_at,
       updated_at: prompt.updated_at,
       category_id: prompt.category_id,
-      category_name: prompt.categories?.name ?? '未分類',
+      category_name: getUiCategoryName(prompt.category_id, prompt.categories?.name),
       category_slug: prompt.categories?.slug ?? '',
       seller_id: prompt.seller_id,
       seller_name: prompt.user_profiles?.display_name ?? '不明',
@@ -203,7 +224,7 @@ export async function GET(
         avg_rating: rp.avg_rating,
         ratings_count: rp.ratings_count ?? 0,
         created_at: rp.created_at,
-        category_name: rp.categories?.name ?? '未分類',
+        category_name: getUiCategoryName(rp.category_id, rp.categories?.name),
       })),
     };
 
@@ -212,6 +233,114 @@ export async function GET(
     console.error('API Error:', error);
     return NextResponse.json(
       { error: 'サーバーエラーが発生しました' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ slug: string }> }
+) {
+  try {
+    const supabase = await createClient();
+    const { slug } = await params;
+
+    // 認証チェック
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { message: '認証が必要です' },
+        { status: 401 }
+      );
+    }
+
+    // 既存のプロンプトを取得
+    const { data: existingPrompt, error: fetchError } = await supabase
+      .from('prompts')
+      .select('id, seller_id')
+      .eq('slug', slug)
+      .single();
+
+    if (fetchError || !existingPrompt) {
+      return NextResponse.json(
+        { message: 'プロンプトが見つかりません' },
+        { status: 404 }
+      );
+    }
+
+    // 所有者チェック
+    if (existingPrompt.seller_id !== user.id) {
+      return NextResponse.json(
+        { message: 'このプロンプトを編集する権限がありません' },
+        { status: 403 }
+      );
+    }
+
+    // リクエストボディを取得
+    const body = await request.json();
+    const { title, description, content, category_id, price, thumbnail_url } = body;
+
+    // バリデーション
+    if (!title || !description || !content || !category_id || price === undefined || price === null) {
+      return NextResponse.json(
+        { message: '必須フィールドが不足しています' },
+        { status: 400 }
+      );
+    }
+
+    if (price < 0) {
+      return NextResponse.json(
+        { message: '価格は0以上である必要があります' },
+        { status: 400 }
+      );
+    }
+
+    // 更新データを準備
+    const updateData: Record<string, unknown> = {
+      title: title.trim(),
+      short_description: description.trim(),
+      long_description: content.trim(),
+      category_id: parseInt(category_id),
+      price_jpy: parseFloat(price),
+      updated_at: new Date().toISOString(),
+    };
+
+    // サムネイル画像URLがある場合のみ追加
+    if (thumbnail_url !== undefined && thumbnail_url !== null) {
+      if (thumbnail_url.trim()) {
+        updateData.thumbnail_url = thumbnail_url.trim();
+      } else {
+        updateData.thumbnail_url = null;
+      }
+    }
+
+    // プロンプトを更新
+    const { data: updatedPrompt, error: updateError } = await supabase
+      .from('prompts')
+      .update(updateData)
+      .eq('id', existingPrompt.id)
+      .select()
+      .single();
+
+    if (updateError) {
+      console.error('Prompt update error:', updateError);
+      return NextResponse.json(
+        { message: 'プロンプトの更新に失敗しました', details: updateError.message },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      message: 'プロンプトが正常に更新されました',
+      prompt: updatedPrompt
+    });
+
+  } catch (error) {
+    console.error('API error:', error);
+    return NextResponse.json(
+      { message: 'サーバーエラーが発生しました', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
